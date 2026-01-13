@@ -1,73 +1,43 @@
-# Welcome to your Lovable project
+# Diálogo Socrático Interior
 
-## Project info
+Aplicación web de introspección basada en ACT (Acceptance & Commitment Therapy). El flujo guía al usuario por un perfil ACT, un diagnóstico y un diálogo socrático en seis fases para transformar creencias.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Requisitos
 
-## How can I edit this code?
+- Node.js 18+
+- npm
 
-There are several ways of editing your application.
+## Configuración
 
-**Use Lovable**
+La app está lista para funcionar con persistencia local (localStorage). Si deseas conectar servicios externos (por ejemplo, Supabase o un backend propio), configura las variables de entorno.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+1. Copia el archivo de ejemplo:
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+cp .env.example .env
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. Ajusta los valores según tu entorno.
 
-# Step 3: Install the necessary dependencies.
-npm i
+## Desarrollo
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```sh
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Build y preview
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```sh
+npm run build
+npm run preview
+```
 
-**Use GitHub Codespaces**
+## Persistencia
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- Por defecto, la sesión actual y el historial se almacenan en `localStorage`.
+- Puedes sustituir esta capa por un backend propio o Supabase en futuras iteraciones.
 
-## What technologies are used for this project?
+## IA / Backend seguro (opcional)
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Si necesitas integrar un modelo de IA, se recomienda usar un backend seguro (por ejemplo, API propia) y evitar exponer llaves en el cliente. Configura el endpoint vía `.env`.
