@@ -43,7 +43,7 @@ function loadHistory(): Session[] {
       ...entry,
       createdAt: new Date(entry.createdAt),
       completedAt: entry.completedAt ? new Date(entry.completedAt) : undefined,
-      dialogue: entry.dialogue.map(dialogueEntry => ({
+      dialogue: (entry.dialogue || []).map(dialogueEntry => ({
         ...dialogueEntry,
         timestamp: new Date(dialogueEntry.timestamp)
       }))
