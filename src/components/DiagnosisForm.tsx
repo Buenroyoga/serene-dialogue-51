@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { BreathAnchor } from './BreathAnchor';
+import { TagSelector } from './TagSelector';
 import { DiagnosisData } from '@/hooks/useSession';
 import { ProfileResult, actProfiles } from '@/lib/actData';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { t } from '@/lib/i18n';
 
 interface DiagnosisFormProps {
   actProfile: ProfileResult;
@@ -36,6 +37,8 @@ export function DiagnosisForm({ actProfile, onComplete, onBack }: DiagnosisFormP
   });
 
   const profile = actProfiles[actProfile.profile];
+  const emotionOptions = ['Tristeza', 'Ansiedad', 'Rabia', 'Vergüenza', 'Miedo', 'Culpa', 'Frustración', 'Soledad', 'Desesperanza'];
+  const triggerOptions = ['Trabajo', 'Relaciones', 'Familia', 'Momentos de soledad', 'Evaluaciones', 'Conflictos', 'Errores', 'Comparación con otros'];
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -66,7 +69,7 @@ export function DiagnosisForm({ actProfile, onComplete, onBack }: DiagnosisFormP
   const canProceed = () => {
     switch (steps[currentStep].id) {
       case 'belief':
-        return formData.coreBelief && formData.coreBelief.length > 5;
+        return Boolean(formData.coreBelief && formData.coreBelief.trim().length >= 10);
       case 'emotions':
         return (formData.emotionalHistory?.length || 0) > 0;
       case 'triggers':
@@ -106,7 +109,11 @@ export function DiagnosisForm({ actProfile, onComplete, onBack }: DiagnosisFormP
                 onChange={(e) => setFormData(prev => ({ ...prev, coreBelief: e.target.value }))}
                 placeholder="Escribe tu creencia nuclear aquí..."
                 className="min-h-[120px] text-lg"
+                aria-describedby="belief-guidance"
               />
+              <p id="belief-guidance" className="text-xs text-muted-foreground mt-2">
+                {t('diagnosis.beliefHint')}
+              </p>
             </div>
           </div>
         );
@@ -114,102 +121,34 @@ export function DiagnosisForm({ actProfile, onComplete, onBack }: DiagnosisFormP
       case 'emotions':
         return (
           <div className="space-y-4">
-            <div className="contemplative-card">
-              <Label className="text-lg font-semibold">
-                ¿Qué emociones acompañan esta creencia?
-              </Label>
-              <p className="text-sm text-muted-foreground mt-2 mb-4">
-                Selecciona las emociones que sientes cuando "{formData.coreBelief}" aparece:
-              </p>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {['Tristeza', 'Ansiedad', 'Rabia', 'Vergüenza', 'Miedo', 'Culpa', 'Frustración', 'Soledad', 'Desesperanza'].map(emotion => (
-                  <button
-                    key={emotion}
-                    onClick={() => {
-                      const current = formData.emotionalHistory || [];
-                      const updated = current.includes(emotion)
-                        ? current.filter(e => e !== emotion)
-                        : [...current, emotion];
-                      setFormData(prev => ({ ...prev, emotionalHistory: updated }));
-                    }}
-                    className={`p-3 rounded-lg text-sm transition-all ${
-                      formData.emotionalHistory?.includes(emotion)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted hover:bg-muted/80'
-                    }`}
-                  >
-                    {emotion}
-                  </button>
-                ))}
-              </div>
-              <Input
-                className="mt-4"
-                placeholder="Otra emoción..."
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    const input = e.target as HTMLInputElement;
-                    if (input.value.trim()) {
-                      setFormData(prev => ({
-                        ...prev,
-                        emotionalHistory: [...(prev.emotionalHistory || []), input.value.trim()]
-                      }));
-                      input.value = '';
-                    }
-                  }
-                }}
-              />
-            </div>
+            <TagSelector
+              id="custom-emotion"
+              label="¿Qué emociones acompañan esta creencia?"
+              description={`Selecciona las emociones que sientes cuando "${formData.coreBelief}" aparece:`}
+              options={emotionOptions}
+              selected={formData.emotionalHistory || []}
+              onChange={(next) => setFormData(prev => ({ ...prev, emotionalHistory: next }))}
+              inputPlaceholder={t('diagnosis.customEmotion')}
+              inputAriaLabel="Agregar otra emoción"
+              hint={t('diagnosis.emotionsHint')}
+            />
           </div>
         );
 
       case 'triggers':
         return (
           <div className="space-y-4">
-            <div className="contemplative-card">
-              <Label className="text-lg font-semibold">
-                ¿Qué situaciones disparan esta creencia?
-              </Label>
-              <p className="text-sm text-muted-foreground mt-2 mb-4">
-                Identifica los momentos o contextos donde "{formData.coreBelief}" se activa:
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {['Trabajo', 'Relaciones', 'Familia', 'Momentos de soledad', 'Evaluaciones', 'Conflictos', 'Errores', 'Comparación con otros'].map(trigger => (
-                  <button
-                    key={trigger}
-                    onClick={() => {
-                      const current = formData.triggers || [];
-                      const updated = current.includes(trigger)
-                        ? current.filter(t => t !== trigger)
-                        : [...current, trigger];
-                      setFormData(prev => ({ ...prev, triggers: updated }));
-                    }}
-                    className={`p-3 rounded-lg text-sm transition-all ${
-                      formData.triggers?.includes(trigger)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted hover:bg-muted/80'
-                    }`}
-                  >
-                    {trigger}
-                  </button>
-                ))}
-              </div>
-              <Input
-                className="mt-4"
-                placeholder="Otro disparador..."
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    const input = e.target as HTMLInputElement;
-                    if (input.value.trim()) {
-                      setFormData(prev => ({
-                        ...prev,
-                        triggers: [...(prev.triggers || []), input.value.trim()]
-                      }));
-                      input.value = '';
-                    }
-                  }
-                }}
-              />
-            </div>
+            <TagSelector
+              id="custom-trigger"
+              label="¿Qué situaciones disparan esta creencia?"
+              description={`Identifica los momentos o contextos donde "${formData.coreBelief}" se activa:`}
+              options={triggerOptions}
+              selected={formData.triggers || []}
+              onChange={(next) => setFormData(prev => ({ ...prev, triggers: next }))}
+              inputPlaceholder={t('diagnosis.customTrigger')}
+              inputAriaLabel="Agregar otro disparador"
+              hint={t('diagnosis.triggersHint')}
+            />
           </div>
         );
 
@@ -235,6 +174,7 @@ export function DiagnosisForm({ actProfile, onComplete, onBack }: DiagnosisFormP
                 value={formData.narrative || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, narrative: e.target.value }))}
                 placeholder="¿Hay algo más que quieras compartir sobre esta creencia? (opcional)"
+                aria-label="Notas adicionales sobre la creencia"
               />
             </div>
           </div>
@@ -280,7 +220,7 @@ export function DiagnosisForm({ actProfile, onComplete, onBack }: DiagnosisFormP
       <div className="mb-8">
         <button 
           onClick={handlePrev}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4"
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-md"
         >
           <ArrowLeft className="w-4 h-4" />
           {currentStep === 0 ? 'Volver' : 'Anterior'}
