@@ -126,9 +126,13 @@ export function Home({
           </div>
         )}
 
-        {/* Footer */}
-        <div className="text-center mt-12 text-sm text-muted-foreground animate-fade-in-delay-3">
-          <p>Un espacio seguro para la introspección y transformación</p>
+        <div className="flex flex-col items-center gap-4 mt-12 animate-fade-in-delay-3">
+          <Button variant="outline" onClick={onViewHistory}>
+            Ver historial de sesiones
+          </Button>
+          <p className="text-center text-sm text-muted-foreground">
+            Un espacio seguro para la introspección y transformación
+          </p>
         </div>
       </div>
     </div>

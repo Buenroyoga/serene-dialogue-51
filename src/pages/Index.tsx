@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Home } from '@/components/Home';
 import { ACTProfileTest } from '@/components/ACTProfileTest';
 import { DiagnosisForm } from '@/components/DiagnosisForm';
+import { DialogueView } from '@/components/DialogueView';
+import { HistoryView } from '@/components/HistoryView';
 import { useSession } from '@/hooks/useSession';
 import { ProfileResult } from '@/lib/actData';
 import { DiagnosisData } from '@/hooks/useSession';
@@ -11,7 +13,15 @@ type View = 'home' | 'profile' | 'diagnosis' | 'dialogue' | 'history';
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<View>('home');
-  const { session, setActProfile, setDiagnosis, resetSession } = useSession();
+  const {
+    session,
+    history,
+    setActProfile,
+    setDiagnosis,
+    addDialogueEntry,
+    completeSession,
+    clearHistory
+  } = useSession();
 
   const handleProfileComplete = (result: ProfileResult) => {
     setActProfile(result);
@@ -47,23 +57,34 @@ const Index = () => {
           />
         );
       case 'dialogue':
-        // TODO: Implement dialogue view
+        if (!session.actProfile || !session.diagnosis) {
+          setCurrentView('home');
+          return null;
+        }
         return (
-          <div className="min-h-screen flex items-center justify-center p-6">
-            <div className="contemplative-card text-center max-w-md">
-              <div className="text-5xl mb-4">💭</div>
-              <h2 className="text-xl font-bold mb-2">Diálogo Socrático</h2>
-              <p className="text-muted-foreground mb-6">
-                El ritual de transformación está en desarrollo.
-              </p>
-              <button 
-                onClick={() => setCurrentView('home')}
-                className="text-primary hover:underline"
-              >
-                Volver al inicio
-              </button>
-            </div>
-          </div>
+          <DialogueView
+            actProfile={session.actProfile}
+            diagnosis={session.diagnosis}
+            dialogue={session.dialogue}
+            onAddEntry={addDialogueEntry}
+            onComplete={() => {
+              completeSession();
+              toast.success('Sesión guardada en tu historial');
+              setCurrentView('home');
+            }}
+            onBack={() => setCurrentView('home')}
+          />
+        );
+      case 'history':
+        return (
+          <HistoryView
+            history={history}
+            onClear={() => {
+              clearHistory();
+              toast.success('Historial limpiado');
+            }}
+            onBack={() => setCurrentView('home')}
+          />
         );
       default:
         return (
