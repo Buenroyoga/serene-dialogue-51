@@ -5,8 +5,10 @@ import { Slider } from '@/components/ui/slider';
 import { BreathAnchor } from './BreathAnchor';
 import { DiagnosisData, DialogueEntry } from '@/hooks/useSession';
 import { ProfileResult, actProfiles, socraticRitual, RitualContext } from '@/lib/actData';
-import { ArrowLeft, ArrowRight, Check, RotateCcw } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface SocraticDialogueProps {
   actProfile: ProfileResult;
@@ -14,6 +16,12 @@ interface SocraticDialogueProps {
   onAddEntry: (entry: Omit<DialogueEntry, 'timestamp'>) => void;
   onComplete: (finalIntensity: number) => void;
   onBack: () => void;
+}
+
+interface PreviousAnswer {
+  phaseId: string;
+  question: string;
+  answer: string;
 }
 
 export function SocraticDialogue({ 
@@ -25,9 +33,12 @@ export function SocraticDialogue({
 }: SocraticDialogueProps) {
   const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0);
   const [currentAnswer, setCurrentAnswer] = useState('');
-  const [answers, setAnswers] = useState<string[]>([]);
+  const [answers, setAnswers] = useState<PreviousAnswer[]>([]);
   const [finalIntensity, setFinalIntensity] = useState(diagnosis.intensity);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [aiQuestion, setAiQuestion] = useState<string | null>(null);
+  const [isLoadingQuestion, setIsLoadingQuestion] = useState(false);
+  const [isAiEnabled, setIsAiEnabled] = useState(true);
 
   const profile = actProfiles[actProfile.profile];
   const currentPhase = socraticRitual[currentPhaseIndex];
@@ -41,10 +52,68 @@ export function SocraticDialogue({
     origin: diagnosis.origin,
     intensity: diagnosis.intensity,
     subcategory: diagnosis.subcategory,
-    previousAnswers: answers
+    previousAnswers: answers.map(a => a.answer)
   };
 
-  const currentQuestion = currentPhase.getQuestion(ritualContext);
+  // Static fallback question
+  const staticQuestion = currentPhase.getQuestion(ritualContext);
+
+  // Fetch AI question when phase changes
+  useEffect(() => {
+    if (!isAiEnabled || isLastPhase) {
+      setAiQuestion(null);
+      return;
+    }
+
+    const fetchAiQuestion = async () => {
+      setIsLoadingQuestion(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('socratic-question', {
+          body: {
+            phaseId: currentPhase.id,
+            phaseName: currentPhase.name,
+            phaseInstruction: currentPhase.instruction,
+            coreBelief: diagnosis.coreBelief,
+            profile: actProfile.profile,
+            profileName: profile.name,
+            emotions: diagnosis.emotionalHistory,
+            triggers: diagnosis.triggers,
+            origin: diagnosis.origin,
+            intensity: diagnosis.intensity,
+            previousAnswers: answers
+          }
+        });
+
+        if (error) {
+          console.error('Error fetching AI question:', error);
+          setAiQuestion(null);
+          return;
+        }
+
+        if (data?.useStatic) {
+          console.log('Using static question due to:', data.error);
+          setAiQuestion(null);
+          if (data.error?.includes('Rate limit')) {
+            toast.error('Límite de uso alcanzado. Usando preguntas estáticas.');
+          }
+          return;
+        }
+
+        if (data?.question) {
+          setAiQuestion(data.question);
+        }
+      } catch (err) {
+        console.error('Failed to fetch AI question:', err);
+        setAiQuestion(null);
+      } finally {
+        setIsLoadingQuestion(false);
+      }
+    };
+
+    fetchAiQuestion();
+  }, [currentPhaseIndex, isAiEnabled]);
+
+  const currentQuestion = aiQuestion || staticQuestion;
 
   const handleNext = async () => {
     if (!currentAnswer.trim() && !isLastPhase) return;
@@ -59,7 +128,11 @@ export function SocraticDialogue({
       answer: currentAnswer
     });
 
-    const newAnswers = [...answers, currentAnswer];
+    const newAnswers = [...answers, {
+      phaseId: currentPhase.id,
+      question: currentQuestion,
+      answer: currentAnswer
+    }];
     setAnswers(newAnswers);
 
     if (isLastPhase) {
@@ -70,6 +143,7 @@ export function SocraticDialogue({
       setTimeout(() => {
         setCurrentPhaseIndex(prev => prev + 1);
         setCurrentAnswer('');
+        setAiQuestion(null);
         setIsTransitioning(false);
       }, 300);
     }
@@ -78,8 +152,10 @@ export function SocraticDialogue({
   const handlePrev = () => {
     if (currentPhaseIndex > 0) {
       setCurrentPhaseIndex(prev => prev - 1);
-      setCurrentAnswer(answers[currentPhaseIndex - 1] || '');
+      const prevAnswer = answers[currentPhaseIndex - 1];
+      setCurrentAnswer(prevAnswer?.answer || '');
       setAnswers(prev => prev.slice(0, -1));
+      setAiQuestion(null);
     } else {
       onBack();
     }
@@ -168,13 +244,28 @@ export function SocraticDialogue({
         <div className="contemplative-card mb-6">
           <div className="flex items-start gap-3 mb-4">
             <span className="text-2xl">{profile.emoji}</span>
-            <div>
-              <p className="text-xs text-primary mb-1">
-                Pregunta adaptada a tu perfil {profile.name}
-              </p>
-              <p className="text-lg leading-relaxed text-foreground">
-                {currentQuestion}
-              </p>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <p className="text-xs text-primary">
+                  Pregunta adaptada a tu perfil {profile.name}
+                </p>
+                {aiQuestion && (
+                  <span className="flex items-center gap-1 text-xs text-secondary bg-secondary/10 px-2 py-0.5 rounded-full">
+                    <Sparkles className="w-3 h-3" />
+                    IA
+                  </span>
+                )}
+              </div>
+              {isLoadingQuestion ? (
+                <div className="flex items-center gap-2 py-4">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  <span className="text-muted-foreground">Generando pregunta personalizada...</span>
+                </div>
+              ) : (
+                <p className="text-lg leading-relaxed text-foreground">
+                  {currentQuestion}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -221,6 +312,7 @@ export function SocraticDialogue({
             onChange={(e) => setCurrentAnswer(e.target.value)}
             placeholder="Responde con honestidad y desde tu experiencia presente..."
             className="min-h-[150px] text-base"
+            disabled={isLoadingQuestion}
           />
         )}
 
@@ -243,7 +335,7 @@ export function SocraticDialogue({
       <div className="mt-6 space-y-3">
         <Button 
           onClick={handleNext}
-          disabled={!canProceed()}
+          disabled={!canProceed() || isLoadingQuestion}
           className="w-full py-6 text-lg"
           size="lg"
         >

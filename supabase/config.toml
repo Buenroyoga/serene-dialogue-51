@@ -1,0 +1,4 @@
+project_id = "juljsovmrrjisaeqxabt"
+
+[functions.socratic-question]
+verify_jwt = false
