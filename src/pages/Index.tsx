@@ -2,16 +2,19 @@ import { useState } from 'react';
 import { Home } from '@/components/Home';
 import { ACTProfileTest } from '@/components/ACTProfileTest';
 import { DiagnosisForm } from '@/components/DiagnosisForm';
+import { SocraticDialogue } from '@/components/SocraticDialogue';
+import { RitualComplete } from '@/components/RitualComplete';
 import { useSession } from '@/hooks/useSession';
 import { ProfileResult } from '@/lib/actData';
 import { DiagnosisData } from '@/hooks/useSession';
 import { toast } from 'sonner';
 
-type View = 'home' | 'profile' | 'diagnosis' | 'dialogue' | 'history';
+type View = 'home' | 'profile' | 'diagnosis' | 'dialogue' | 'complete' | 'history';
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<View>('home');
-  const { session, setActProfile, setDiagnosis, resetSession } = useSession();
+  const [finalIntensity, setFinalIntensity] = useState<number>(0);
+  const { session, setActProfile, setDiagnosis, addDialogueEntry, resetSession } = useSession();
 
   const handleProfileComplete = (result: ProfileResult) => {
     setActProfile(result);
@@ -23,6 +26,26 @@ const Index = () => {
     setDiagnosis(diagnosis);
     toast.success('Diagnóstico completado');
     setCurrentView('home');
+  };
+
+  const handleDialogueComplete = (intensity: number) => {
+    setFinalIntensity(intensity);
+    toast.success('Ritual completado');
+    setCurrentView('complete');
+  };
+
+  const handleNewRitual = () => {
+    // Reset diagnosis to start fresh
+    setDiagnosis({
+      coreBelief: '',
+      emotionalHistory: [],
+      triggers: [],
+      narrative: '',
+      origin: '',
+      intensity: 5,
+      subcategory: ''
+    });
+    setCurrentView('diagnosis');
   };
 
   const renderView = () => {
@@ -47,23 +70,33 @@ const Index = () => {
           />
         );
       case 'dialogue':
-        // TODO: Implement dialogue view
+        if (!session.actProfile || !session.diagnosis) {
+          setCurrentView('home');
+          return null;
+        }
         return (
-          <div className="min-h-screen flex items-center justify-center p-6">
-            <div className="contemplative-card text-center max-w-md">
-              <div className="text-5xl mb-4">💭</div>
-              <h2 className="text-xl font-bold mb-2">Diálogo Socrático</h2>
-              <p className="text-muted-foreground mb-6">
-                El ritual de transformación está en desarrollo.
-              </p>
-              <button 
-                onClick={() => setCurrentView('home')}
-                className="text-primary hover:underline"
-              >
-                Volver al inicio
-              </button>
-            </div>
-          </div>
+          <SocraticDialogue
+            actProfile={session.actProfile}
+            diagnosis={session.diagnosis}
+            onAddEntry={addDialogueEntry}
+            onComplete={handleDialogueComplete}
+            onBack={() => setCurrentView('home')}
+          />
+        );
+      case 'complete':
+        if (!session.actProfile || !session.diagnosis) {
+          setCurrentView('home');
+          return null;
+        }
+        return (
+          <RitualComplete
+            actProfile={session.actProfile}
+            diagnosis={session.diagnosis}
+            dialogueEntries={session.dialogue}
+            finalIntensity={finalIntensity}
+            onHome={() => setCurrentView('home')}
+            onNewRitual={handleNewRitual}
+          />
         );
       default:
         return (
