@@ -134,3 +134,135 @@ export function calculateProfile(answers: Record<number, number>): ProfileResult
     mixedProfile
   };
 }
+
+// ═══════════════════════════════════════════════════════════
+// SOCRATIC RITUAL - 6 PHASES
+// ═══════════════════════════════════════════════════════════
+
+export interface RitualPhase {
+  id: string;
+  name: string;
+  emoji: string;
+  instruction: string;
+  getQuestion: (context: RitualContext) => string;
+}
+
+export interface RitualContext {
+  coreBelief: string;
+  profile: ProfileCategory;
+  emotions: string[];
+  triggers: string[];
+  origin: string;
+  intensity: number;
+  subcategory: string;
+  previousAnswers: string[];
+}
+
+export const socraticRitual: RitualPhase[] = [
+  {
+    id: 'certeza',
+    name: 'Verificación de Certeza',
+    emoji: '🔍',
+    instruction: 'Examina la solidez de la creencia',
+    getQuestion: (ctx) => {
+      const trigger = ctx.triggers[0] || 'momentos difíciles';
+      switch (ctx.profile) {
+        case 'A':
+          return `¿Es absolutamente cierto que "${ctx.coreBelief}"? ¿Puedes estar 100% seguro/a de que es verdad, incluso en situaciones como ${trigger}?`;
+        case 'B':
+          return `Cuando sientes que "${ctx.coreBelief}", ¿esa emoción te está mostrando una verdad absoluta o solo una reacción ante ${trigger}?`;
+        case 'C':
+          return `Tu cuerpo siente que "${ctx.coreBelief}". Pero ¿esa sensación física prueba que es cierto, o solo que tu cuerpo reacciona ante ${trigger}?`;
+        case 'D':
+          return `La historia de "${ctx.coreBelief}" que vienes cargando${ctx.origin ? ' desde ' + ctx.origin : ''}... ¿es una verdad inmutable o una narrativa que puedes cuestionar?`;
+      }
+    }
+  },
+  {
+    id: 'reaccion',
+    name: 'Impacto y Reacción',
+    emoji: '⚡',
+    instruction: 'Observa cómo te afecta creerla',
+    getQuestion: (ctx) => {
+      const emotionsStr = ctx.emotions.slice(0, 3).join(', ') || 'emociones intensas';
+      const trigger = ctx.triggers[1] || ctx.triggers[0] || 'momentos difíciles';
+      switch (ctx.profile) {
+        case 'A':
+          return `Cuando tu mente se fusiona con "${ctx.coreBelief}", ¿cómo reacciona tu sistema nervioso? ¿Qué pensamientos automáticos se disparan? ¿Reconoces emociones como ${emotionsStr}?`;
+        case 'B':
+          return `¿Qué le pasa a tu corazón cuando crees que "${ctx.coreBelief}"? Con esa intensidad de ${ctx.intensity}/10, observa cómo se manifiestan específicamente estas emociones: ${emotionsStr}. ¿Cuál de ellas es más fuerte ahora mismo?`;
+        case 'C':
+          return `¿Dónde vive "${ctx.coreBelief}" en tu cuerpo ahora mismo? Cuando aparecen estas emociones —${emotionsStr}— ¿qué tensión, dolor o sensación específica las acompaña?`;
+        case 'D':
+          return `Cuando la historia "${ctx.coreBelief}" toma el control en momentos como ${trigger}, ¿cómo cambia tu forma de actuar, de relacionarte, de estar en el mundo? ¿Qué papel interpretas cuando estas emociones (${emotionsStr}) te gobiernan?`;
+      }
+    }
+  },
+  {
+    id: 'sin_historia',
+    name: 'Yo Sin la Historia',
+    emoji: '🕊️',
+    instruction: 'Imagina existir sin esta creencia',
+    getQuestion: (ctx) => {
+      const emotionsStr = ctx.emotions.slice(0, 3).join(', ') || 'esas emociones';
+      const trigger = ctx.triggers[0] || 'esos momentos';
+      switch (ctx.profile) {
+        case 'A':
+          return `Imagina por un momento que el pensamiento "${ctx.coreBelief}" desaparece completamente. ¿Quién serías tú sin esta idea en tu mente, especialmente en situaciones como ${trigger}?`;
+        case 'B':
+          return `Si pudieras soltar completamente "${ctx.coreBelief}" y la carga emocional de ${emotionsStr}, ¿cómo te sentirías? ¿Qué espacio se abriría en tu interior?`;
+        case 'C':
+          return `¿Cómo respiraría tu cuerpo si "${ctx.coreBelief}" no viviera en él? Sin esta tensión, ¿qué sensación física te imaginas sintiendo?`;
+        case 'D':
+          return `Si esta narrativa de "${ctx.coreBelief}" que aprendiste${ctx.origin ? ' de ' + ctx.origin : ''} nunca hubiera sido tuya, ¿qué historia sobre ti mismo/a contarías hoy? ¿De quién era originalmente esta historia?`;
+      }
+    }
+  },
+  {
+    id: 'opuesto',
+    name: 'El Giro (Turnaround)',
+    emoji: '🔄',
+    instruction: 'Explora la verdad opuesta o alternativa',
+    getQuestion: (ctx) => {
+      const emotionsStr = ctx.emotions.slice(0, 3).join(', ') || 'esas emociones';
+      switch (ctx.profile) {
+        case 'A':
+          return `¿Podrías encontrar 3 ejemplos reales donde lo opuesto a "${ctx.coreBelief}" ha sido verdad en tu vida? ¿Momentos donde la evidencia muestra algo diferente?`;
+        case 'B':
+          return `¿Y si en lugar de "${ctx.coreBelief}", la verdad fuera algo más compasivo? En vez de sentir ${emotionsStr}, ¿qué emoción nutritiva podría aparecer si creyeras algo distinto sobre ti?`;
+        case 'C':
+          return `Tu cuerpo ha aprendido a sentir "${ctx.coreBelief}". Pero ¿ha habido momentos donde tu cuerpo se sintió liviano, capaz, suficiente? ¿Qué sensación opuesta conoce tu cuerpo?`;
+        case 'D':
+          return `¿Qué pasaría si reescribieras "${ctx.coreBelief}" desde la verdad más profunda de quien eres? Si no fueras el personaje de esta historia, ¿cuál sería tu nueva narrativa?`;
+      }
+    }
+  },
+  {
+    id: 'testigo',
+    name: 'Conciencia Testigo',
+    emoji: '👁️',
+    instruction: 'Desidentificación: observa sin ser',
+    getQuestion: (ctx) => {
+      const emotionsStr = ctx.emotions.slice(0, 3).join(', ') || 'esas emociones';
+      switch (ctx.profile) {
+        case 'A':
+          return `Ahora da un paso atrás. Nota que hay una parte de ti que puede OBSERVAR el pensamiento "${ctx.coreBelief}". Si puedes verlo, ¿significa que TÚ no eres ese pensamiento? ¿Quién es el que observa?`;
+        case 'B':
+          return `Hay una parte de ti que puede sentir ${emotionsStr} y la creencia "${ctx.coreBelief}", pero que NO ES ninguna de esas emociones ni esa creencia. Esa presencia que observa desde el silencio... ¿cómo se siente? ¿Qué nota desde ahí?`;
+        case 'C':
+          return `Respira profundo. Nota que tu cuerpo siente la tensión de "${ctx.coreBelief}", pero hay una conciencia más amplia que observa esa sensación sin identificarse con ella. Desde ese testigo interior, ¿qué ves?`;
+        case 'D':
+          return `La historia "${ctx.coreBelief}" ha estado ahí mucho tiempo. Pero nota: hay una parte de ti que existe ANTES de la historia, más allá de la historia, antes del personaje. ¿Quién eres tú sin el guion? ¿Qué queda cuando sueltas el papel que has interpretado?`;
+      }
+    }
+  },
+  {
+    id: 'felt_shift',
+    name: 'Cambio Sentido Corporal',
+    emoji: '✨',
+    instruction: 'Registra el cambio en tu cuerpo',
+    getQuestion: (ctx) => {
+      return `Empezaste con "${ctx.coreBelief}" a una intensidad de ${ctx.intensity}/10. Ahora, después de este diálogo, escanea tu cuerpo: ¿Qué ha cambiado? ¿Dónde sientes más espacio, ligereza o apertura? ¿Cuál es la intensidad ahora?`;
+    }
+  }
+];
