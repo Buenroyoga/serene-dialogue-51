@@ -3,11 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { DiagnosisData, DialogueEntry } from '@/hooks/useSession';
 import { ProfileResult, actProfiles, socraticRitual } from '@/lib/actData';
-import { Home, RotateCcw, BookOpen, X, ChevronRight } from 'lucide-react';
+import { Home, RotateCcw, BookOpen, X, ChevronRight, FileText, Download, Loader2, Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BreathAnchor } from './BreathAnchor';
 import { ExerciseLibrary } from './ExerciseLibrary';
 import { getExercisesForProfile } from '@/lib/actExercises';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface RitualCompleteProps {
   actProfile: ProfileResult;
@@ -27,6 +29,11 @@ export function RitualComplete({
   onNewRitual
 }: RitualCompleteProps) {
   const [showExercises, setShowExercises] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [copied, setCopied] = useState(false);
+  
   const profile = actProfiles[actProfile.profile];
   const intensityDrop = diagnosis.intensity - finalIntensity;
   const percentDrop = Math.round((intensityDrop / diagnosis.intensity) * 100);
@@ -61,6 +68,71 @@ export function RitualComplete({
   };
 
   const transformation = getTransformationMessage();
+
+  const generateSummary = async () => {
+    setIsGeneratingSummary(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-summary', {
+        body: {
+          coreBelief: diagnosis.coreBelief,
+          profile: actProfile.profile,
+          profileName: profile.name,
+          emotions: diagnosis.emotionalHistory,
+          triggers: diagnosis.triggers,
+          origin: diagnosis.origin,
+          initialIntensity: diagnosis.intensity,
+          finalIntensity,
+          dialogueEntries,
+          actMicro: profile.actMicro
+        }
+      });
+
+      if (error) {
+        console.error('Error generating summary:', error);
+        toast.error('Error al generar el resumen');
+        return;
+      }
+
+      if (data?.summary) {
+        setSummary(data.summary);
+        setShowSummary(true);
+        toast.success('Documento generado correctamente');
+      }
+    } catch (err) {
+      console.error('Failed to generate summary:', err);
+      toast.error('Error al generar el resumen');
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  };
+
+  const downloadSummary = () => {
+    if (!summary) return;
+    
+    const blob = new Blob([summary], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ritual-socrático-${new Date().toISOString().split('T')[0]}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Documento descargado');
+  };
+
+  const copySummary = async () => {
+    if (!summary) return;
+    
+    try {
+      await navigator.clipboard.writeText(summary);
+      setCopied(true);
+      toast.success('Copiado al portapapeles');
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast.error('Error al copiar');
+    }
+  };
 
   return (
     <div className="relative w-full min-h-screen flex flex-col">
@@ -215,7 +287,7 @@ export function RitualComplete({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.75 }}
-          className="glass-card mb-8"
+          className="glass-card mb-6"
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold flex items-center gap-2">
@@ -252,6 +324,36 @@ export function RitualComplete({
               </motion.div>
             ))}
           </div>
+        </motion.div>
+
+        {/* Generate Summary Button */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.85 }}
+          className="mb-8"
+        >
+          <Button
+            onClick={generateSummary}
+            disabled={isGeneratingSummary}
+            variant="outline"
+            className="w-full py-6 border-primary/30 hover:border-primary/60 hover:bg-primary/5 group"
+          >
+            {isGeneratingSummary ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-3 animate-spin text-primary" />
+                <span className="text-muted-foreground">Generando documento con IA...</span>
+              </>
+            ) : (
+              <>
+                <FileText className="w-5 h-5 mr-3 text-primary group-hover:scale-110 transition-transform" />
+                <span className="text-gradient-subtle font-semibold">Generar Documento Resumen</span>
+              </>
+            )}
+          </Button>
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            La IA creará un documento personalizado con insights y recomendaciones
+          </p>
         </motion.div>
 
         {/* Actions */}
@@ -303,6 +405,89 @@ export function RitualComplete({
             </div>
             <div className="p-4">
               <ExerciseLibrary profile={actProfile.profile} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Summary Modal */}
+      <AnimatePresence>
+        {showSummary && summary && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md overflow-y-auto"
+          >
+            <div className="sticky top-0 z-10 flex justify-between items-center p-4 bg-background/80 backdrop-blur-sm border-b border-border/30">
+              <h2 className="text-xl font-semibold text-gradient-subtle">Tu Documento de Transformación</h2>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={copySummary}
+                  className="hover:bg-primary/10"
+                  title="Copiar"
+                >
+                  {copied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={downloadSummary}
+                  className="hover:bg-primary/10"
+                  title="Descargar"
+                >
+                  <Download className="w-5 h-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowSummary(false)}
+                  className="hover:bg-primary/10"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
+            <div className="p-6 max-w-3xl mx-auto">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="glass-card prose prose-invert max-w-none"
+              >
+                <div 
+                  className="markdown-content text-foreground"
+                  dangerouslySetInnerHTML={{ 
+                    __html: summary
+                      .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold text-gradient-subtle mb-4">$1</h1>')
+                      .replace(/^## (.*$)/gim, '<h2 class="text-xl font-semibold text-foreground mt-6 mb-3">$1</h2>')
+                      .replace(/^### (.*$)/gim, '<h3 class="text-lg font-medium text-foreground mt-4 mb-2">$1</h3>')
+                      .replace(/\*\*(.*?)\*\*/g, '<strong class="text-primary">$1</strong>')
+                      .replace(/\*(.*?)\*/g, '<em class="text-muted-foreground">$1</em>')
+                      .replace(/^- (.*$)/gim, '<li class="ml-4 text-muted-foreground">$1</li>')
+                      .replace(/^> (.*$)/gim, '<blockquote class="border-l-2 border-primary/50 pl-4 italic text-muted-foreground my-4">$1</blockquote>')
+                      .replace(/\n/g, '<br/>')
+                  }} 
+                />
+              </motion.div>
+              
+              <div className="flex gap-3 mt-6">
+                <Button
+                  onClick={downloadSummary}
+                  className="flex-1 btn-ritual"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Descargar Documento
+                </Button>
+                <Button
+                  onClick={() => setShowSummary(false)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cerrar
+                </Button>
+              </div>
             </div>
           </motion.div>
         )}
