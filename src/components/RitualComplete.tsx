@@ -1,10 +1,13 @@
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { DiagnosisData, DialogueEntry } from '@/hooks/useSession';
 import { ProfileResult, actProfiles, socraticRitual } from '@/lib/actData';
-import { Home, RotateCcw } from 'lucide-react';
+import { Home, RotateCcw, BookOpen, X, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BreathAnchor } from './BreathAnchor';
+import { ExerciseLibrary } from './ExerciseLibrary';
+import { getExercisesForProfile } from '@/lib/actExercises';
 
 interface RitualCompleteProps {
   actProfile: ProfileResult;
@@ -23,9 +26,11 @@ export function RitualComplete({
   onHome,
   onNewRitual
 }: RitualCompleteProps) {
+  const [showExercises, setShowExercises] = useState(false);
   const profile = actProfiles[actProfile.profile];
   const intensityDrop = diagnosis.intensity - finalIntensity;
   const percentDrop = Math.round((intensityDrop / diagnosis.intensity) * 100);
+  const recommendedExercises = getExercisesForProfile(actProfile.profile).slice(0, 3);
 
   const getTransformationMessage = () => {
     if (percentDrop >= 70) {
@@ -191,7 +196,7 @@ export function RitualComplete({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
-          className="glass-card mb-8 border border-primary/20"
+          className="glass-card mb-6 border border-primary/20"
         >
           <h3 className="font-semibold mb-3 flex items-center gap-2">
             <span>🧘</span>
@@ -205,11 +210,55 @@ export function RitualComplete({
           </p>
         </motion.div>
 
+        {/* Recommended Exercises */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.75 }}
+          className="glass-card mb-8"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-primary" />
+              Ejercicios Recomendados
+            </h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowExercises(true)}
+              className="text-xs text-primary hover:text-primary/80"
+            >
+              Ver todos
+              <ChevronRight className="w-3 h-3 ml-1" />
+            </Button>
+          </div>
+          
+          <div className="space-y-3">
+            {recommendedExercises.map((exercise, index) => (
+              <motion.div
+                key={exercise.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.8 + index * 0.1 }}
+                className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer"
+                onClick={() => setShowExercises(true)}
+              >
+                <span className="text-xl">{exercise.emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{exercise.name}</p>
+                  <p className="text-xs text-muted-foreground">{exercise.duration}</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
         {/* Actions */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
+          transition={{ delay: 0.9 }}
           className="space-y-3 mt-auto"
         >
           <Button 
@@ -231,6 +280,33 @@ export function RitualComplete({
           </Button>
         </motion.div>
       </motion.div>
+
+      {/* Exercise Library Modal */}
+      <AnimatePresence>
+        {showExercises && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md overflow-y-auto"
+          >
+            <div className="sticky top-0 z-10 flex justify-between items-center p-4 bg-background/80 backdrop-blur-sm border-b border-border/30">
+              <h2 className="text-xl font-semibold text-gradient-subtle">Ejercicios para Ti</h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowExercises(false)}
+                className="hover:bg-primary/10"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+            <div className="p-4">
+              <ExerciseLibrary profile={actProfile.profile} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
