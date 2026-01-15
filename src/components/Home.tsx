@@ -1,8 +1,11 @@
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { JourneyCard } from './JourneyCard';
 import { BreathAnchor } from './BreathAnchor';
+import { ExerciseLibrary } from './ExerciseLibrary';
 import { Session } from '@/hooks/useSession';
-import { ArrowDown, Sparkles } from 'lucide-react';
+import { ArrowDown, Sparkles, BookOpen, X } from 'lucide-react';
+import { Button } from './ui/button';
 
 interface HomeProps {
   session: Session;
@@ -38,6 +41,7 @@ export function Home({
   onStartDiagnosis, 
   onStartDialogue,
 }: HomeProps) {
+  const [showExercises, setShowExercises] = useState(false);
   const hasProfile = session.actProfile !== null;
   const hasDiagnosis = session.diagnosis !== null;
 
@@ -241,16 +245,55 @@ export function Home({
           </motion.div>
         )}
 
+        {/* Exercise Library Button */}
+        <motion.div variants={itemVariants} className="mb-8">
+          <Button
+            onClick={() => setShowExercises(true)}
+            variant="outline"
+            className="w-full py-6 border-primary/30 hover:border-primary/60 hover:bg-primary/5 group"
+          >
+            <BookOpen className="w-5 h-5 mr-3 text-primary group-hover:scale-110 transition-transform" />
+            <span className="text-gradient-subtle font-semibold">Explorar Biblioteca de Ejercicios ACT</span>
+          </Button>
+        </motion.div>
+
         {/* Footer */}
         <motion.div 
           variants={itemVariants}
-          className="text-center mt-12"
+          className="text-center mt-8"
         >
           <p className="text-sm text-muted-foreground">
             Un espacio seguro para la introspección y transformación
           </p>
         </motion.div>
       </motion.div>
+
+      {/* Exercise Library Modal */}
+      <AnimatePresence>
+        {showExercises && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md overflow-y-auto"
+          >
+            <div className="sticky top-0 z-10 flex justify-between items-center p-4 bg-background/80 backdrop-blur-sm border-b border-border/30">
+              <h2 className="text-xl font-semibold text-gradient-subtle">Biblioteca de Ejercicios ACT</h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowExercises(false)}
+                className="hover:bg-primary/10"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+            <div className="p-4">
+              <ExerciseLibrary profile={session.actProfile?.profile} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
