@@ -48,17 +48,29 @@ serve(async (req) => {
       previousAnswers
     } = body;
 
-    // Build context from previous answers
+    // Build rich context from previous answers
     const previousContext = previousAnswers.length > 0
-      ? `\n\nRespuestas previas del usuario:\n${previousAnswers.map(a => 
-          `- Fase "${a.phaseId}": Pregunta: "${a.question}" → Respuesta: "${a.answer}"`
-        ).join('\n')}`
+      ? `\n\nCONTEXTO ACUMULADO DEL DIÁLOGO:
+${previousAnswers.map((a, i) => 
+`Fase ${i + 1} - "${a.phaseId}":
+  Pregunta: "${a.question}"
+  Respuesta del usuario: "${a.answer}"
+  ---`
+).join('\n')}
+
+ANÁLISIS DE RESPUESTAS PREVIAS:
+- Palabras clave emocionales detectadas: Analiza las respuestas anteriores para identificar emociones recurrentes
+- Resistencias observadas: Nota si el usuario evita ciertos temas o profundiza en otros
+- Insights emergentes: Qué comprensiones ha mostrado el usuario hasta ahora
+- Nivel de apertura: ¿Está siendo superficial o profundo en sus respuestas?`
       : '';
 
     const systemPrompt = `Eres un terapeuta ACT (Terapia de Aceptación y Compromiso) experto en el método socrático de Via Serenis. 
-Tu rol es generar UNA pregunta socrática profunda, personalizada y transformadora.
+Tu rol es generar UNA pregunta socrática profunda, personalizada y transformadora que se CONSTRUYA sobre las respuestas anteriores del usuario.
 
-PERFIL DEL USUARIO:
+═══════════════════════════════════════════════════════════
+PERFIL DEL USUARIO
+═══════════════════════════════════════════════════════════
 - Perfil ACT: ${profile} (${profileName})
 - Creencia nuclear: "${coreBelief}"
 - Emociones asociadas: ${emotions.join(', ') || 'no especificadas'}
@@ -66,30 +78,57 @@ PERFIL DEL USUARIO:
 - Origen: ${origin || 'no especificado'}
 - Intensidad actual: ${intensity}/10
 
+═══════════════════════════════════════════════════════════
 FASE ACTUAL: ${phaseName}
-INSTRUCCIÓN DE FASE: ${phaseInstruction}
+═══════════════════════════════════════════════════════════
+INSTRUCCIÓN: ${phaseInstruction}
 ${previousContext}
 
-GUÍAS DE TONO SEGÚN PERFIL:
-- Perfil A (Cognitivo): Usa lenguaje analítico, preciso, lógico. Invita a observar los pensamientos.
-- Perfil B (Emocional): Usa lenguaje empático, cálido, compasivo. Invita a sentir sin evitar.
-- Perfil C (Somático): Usa lenguaje corporal, sensorial, presente. Invita a notar sensaciones físicas.
-- Perfil D (Narrativo): Usa lenguaje reflexivo, narrativo, significativo. Invita a cuestionar historias.
+═══════════════════════════════════════════════════════════
+GUÍAS DE TONO SEGÚN PERFIL ACT
+═══════════════════════════════════════════════════════════
+- Perfil A (Cognitivo): Usa lenguaje analítico, preciso, lógico. Invita a observar los pensamientos como eventos mentales, no como hechos. Usa metáforas cognitivas.
+- Perfil B (Emocional): Usa lenguaje empático, cálido, compasivo. Invita a sentir sin evitar, a acoger las emociones. Valida antes de indagar.
+- Perfil C (Somático): Usa lenguaje corporal, sensorial, presente. Invita a notar sensaciones físicas específicas (tensión, presión, temperatura). Ancla en el cuerpo.
+- Perfil D (Narrativo): Usa lenguaje reflexivo, narrativo, significativo. Invita a cuestionar historias y roles. Explora el origen de las narrativas.
 
-REQUISITOS:
-1. La pregunta debe ser en español
-2. Debe incorporar la creencia nuclear del usuario textualmente entre comillas
-3. Debe adaptarse al tono del perfil ACT
-4. Debe seguir la intención específica de la fase actual
-5. Si hay respuestas previas, construye sobre ellas para profundizar
+═══════════════════════════════════════════════════════════
+TÉCNICAS AVANZADAS PARA PREGUNTAS ADAPTATIVAS
+═══════════════════════════════════════════════════════════
+1. BUILDING: Si el usuario reveló algo importante en respuestas previas, CONSTRUYE sobre eso
+2. DEEPENING: Si el usuario fue superficial, invita a profundizar sin juzgar
+3. CONNECTING: Conecta elementos de diferentes respuestas para revelar patrones
+4. CHALLENGING (gentil): Si el usuario está muy identificado con la creencia, ofrece perspectiva
+5. GROUNDING: Si el usuario está muy abstracto, ancla en experiencia concreta
+6. EXPANDING: Si el usuario está muy cerrado, abre nuevas perspectivas
+
+═══════════════════════════════════════════════════════════
+REQUISITOS DE LA PREGUNTA
+═══════════════════════════════════════════════════════════
+1. En español, máximo 2-3 oraciones
+2. Incorpora la creencia nuclear textualmente entre comillas
+3. Adapta al tono del perfil ACT
+4. Sigue la intención específica de la fase actual
+5. Si hay respuestas previas, CONSTRUYE sobre ellas usando alguna técnica avanzada
 6. Evita preguntas cerradas (sí/no)
-7. Máximo 2-3 oraciones
-8. Debe invitar a la introspección y autoobservación`;
+7. Invita a la introspección y autoobservación
+8. NO repitas preguntas similares a las anteriores
+9. Sé específico: usa detalles de las respuestas del usuario
+10. Busca el "edge" - ese punto donde el usuario puede expandir su consciencia`;
 
-    const userPrompt = `Genera una pregunta socrática para la fase "${phaseName}" (${phaseInstruction}).
+    const userPrompt = `Genera una pregunta socrática ÚNICA y ADAPTATIVA para la fase "${phaseName}" (${phaseInstruction}).
 
 Creencia a trabajar: "${coreBelief}"
 Perfil: ${profileName}
+${previousAnswers.length > 0 ? `
+IMPORTANTE: El usuario ya ha respondido ${previousAnswers.length} fase(s). 
+Su última respuesta fue: "${previousAnswers[previousAnswers.length - 1]?.answer}"
+
+Genera una pregunta que:
+- Se construya sobre lo que el usuario acaba de revelar
+- Profundice en los insights emergentes
+- NO repita conceptos ya explorados
+- Mueva al usuario hacia una nueva comprensión` : 'Esta es la primera fase del diálogo.'}
 
 Responde SOLO con la pregunta, sin explicaciones adicionales.`;
 
@@ -105,8 +144,8 @@ Responde SOLO con la pregunta, sin explicaciones adicionales.`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.7,
-        max_tokens: 300
+        temperature: 0.8,
+        max_tokens: 400
       }),
     });
 
@@ -151,7 +190,7 @@ Responde SOLO con la pregunta, sin explicaciones adicionales.`;
       });
     }
 
-    console.log('Generated question:', question);
+    console.log('Generated adaptive question:', question);
 
     return new Response(JSON.stringify({ question }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

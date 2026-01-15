@@ -2,3 +2,6 @@ project_id = "juljsovmrrjisaeqxabt"
 
 [functions.socratic-question]
 verify_jwt = false
+
+[functions.generate-summary]
+verify_jwt = false
