@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-// SOCRATIC DIALOGUE - Enhanced with circuit breaker, crisis detection, pause/resume
+// SOCRATIC DIALOGUE - Enhanced with retention features
 // ═══════════════════════════════════════════════════════════
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -10,9 +10,12 @@ import { Slider } from '@/components/ui/slider';
 import { BreathAnchor } from './BreathAnchor';
 import { SomaticBreak } from './SomaticBreak';
 import { CrisisModal } from './CrisisModal';
+import { SafeExitModal } from './SafeExitModal';
+import { ActivationTrafficLight, getActivationLevel } from './ActivationTrafficLight';
+import { AutosaveIndicator } from './AutosaveIndicator';
 import { DiagnosisData, DialogueEntry } from '@/hooks/useSession';
-import { ProfileResult, actProfiles, socraticRitual, RitualContext } from '@/lib/actData';
-import { ArrowLeft, ArrowRight, Check, Sparkles, Loader2, Pause, Play, AlertCircle, Zap, Target, Heart } from 'lucide-react';
+import { ProfileResult, actProfiles, getRitualPhases, RitualContext, RitualMode } from '@/lib/actData';
+import { ArrowLeft, ArrowRight, Check, Sparkles, Loader2, Pause, Play, Zap, Target, Heart, LogOut, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { fetchSocraticQuestion } from '@/infra/supabase';
 import { detectCrisis, CrisisCheckResult } from '@/domain/crisis';
@@ -22,9 +25,11 @@ import { toast } from 'sonner';
 interface SocraticDialogueProps {
   actProfile: ProfileResult;
   diagnosis: DiagnosisData;
+  ritualMode?: RitualMode;
   onAddEntry: (entry: Omit<DialogueEntry, 'timestamp'>) => void;
   onComplete: (finalIntensity: number) => void;
   onBack: () => void;
+  onSaveAndExit?: () => void;
 }
 
 interface PreviousAnswer {
@@ -50,18 +55,19 @@ interface LocalRitualState {
 const MAX_AI_RETRIES_PER_PHASE = 2;
 const INTENSITY_JUMP_THRESHOLD = 2;
 
-// Generate a session ID for telemetry
 const generateSessionId = () => `ritual_${Date.now()}`;
 
 export function SocraticDialogue({ 
   actProfile, 
   diagnosis, 
+  ritualMode = 'full',
   onAddEntry, 
   onComplete, 
-  onBack 
+  onBack,
+  onSaveAndExit,
 }: SocraticDialogueProps) {
-  // ═══ STATE ═══
   const sessionId = useMemo(() => generateSessionId(), []);
+  const ritualPhases = useMemo(() => getRitualPhases(ritualMode), [ritualMode]);
   
   const [ritualState, setRitualState] = useState<LocalRitualState>({
     currentPhaseIndex: 0,
@@ -83,11 +89,15 @@ export function SocraticDialogue({
   const [crisisResult, setCrisisResult] = useState<CrisisCheckResult | null>(null);
   const [showCrisisModal, setShowCrisisModal] = useState(false);
   const [currentIntensityCheck, setCurrentIntensityCheck] = useState(diagnosis.intensity);
+  const [showSafeExit, setShowSafeExit] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const profile = actProfiles[actProfile.profile];
-  const currentPhase = socraticRitual[ritualState.currentPhaseIndex];
-  const isLastPhase = ritualState.currentPhaseIndex === socraticRitual.length - 1;
+  const currentPhase = ritualPhases[ritualState.currentPhaseIndex];
+  const isLastPhase = ritualState.currentPhaseIndex === ritualPhases.length - 1;
   const isUsingAi = ritualState.isAiMode && !ritualState.aiCircuitBreakerTripped;
+  const activationLevel = getActivationLevel(currentIntensityCheck, currentIntensityCheck - ritualState.lastIntensity);
 
   const ritualContext: RitualContext = {
     coreBelief: diagnosis.coreBelief,
@@ -415,7 +425,7 @@ export function SocraticDialogue({
             <BreathAnchor size="sm" className="mb-4" />
             <h2 className="text-2xl font-bold text-gradient-subtle">Diálogo Socrático</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Fase {ritualState.currentPhaseIndex + 1} de {socraticRitual.length}
+              Fase {ritualState.currentPhaseIndex + 1} de {ritualPhases.length}
             </p>
             
             {/* AI Mode Indicator */}
@@ -481,7 +491,7 @@ export function SocraticDialogue({
               transition={{ delay: 0.2 }}
               className="flex gap-2 mb-6 px-4"
             >
-              {socraticRitual.map((phase, i) => (
+              {ritualPhases.map((phase, i) => (
                 <div key={phase.id} className="flex-1 flex flex-col items-center gap-2">
                   <motion.div 
                     className={cn(
