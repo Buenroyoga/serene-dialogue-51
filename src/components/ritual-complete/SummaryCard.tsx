@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Lightbulb, Heart, Shield, Zap } from 'lucide-react';
 import { DiagnosisData } from '@/domain/types';
@@ -9,7 +10,7 @@ interface SummaryCardProps {
   actMicro: string;
 }
 
-export function SummaryCard({ 
+export const SummaryCard = memo(function SummaryCard({
   findings, 
   underlyingValue, 
   diagnosis, 
@@ -91,4 +92,4 @@ export function SummaryCard({
       </motion.div>
     </>
   );
-}
+});

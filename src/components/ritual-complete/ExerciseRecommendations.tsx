@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ interface ExerciseRecommendationsProps {
   onShowAll: () => void;
 }
 
-export function ExerciseRecommendations({ 
+export const ExerciseRecommendations = memo(function ExerciseRecommendations({
   exercises, 
   onShowAll 
 }: ExerciseRecommendationsProps) {
@@ -58,4 +59,4 @@ export function ExerciseRecommendations({
       </div>
     </motion.div>
   );
-}
+});

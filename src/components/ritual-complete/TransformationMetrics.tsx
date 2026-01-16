@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { BreathAnchor } from '../BreathAnchor';
 import { TransformationResult } from './types';
@@ -10,7 +11,7 @@ interface TransformationMetricsProps {
   percentDrop: number;
 }
 
-export function TransformationMetrics({
+export const TransformationMetrics = memo(function TransformationMetrics({
   transformation,
   initialIntensity,
   finalIntensity,
@@ -90,4 +91,4 @@ export function TransformationMetrics({
       </motion.div>
     </>
   );
-}
+});

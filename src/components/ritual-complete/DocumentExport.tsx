@@ -1,3 +1,4 @@
+import { memo, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import {
@@ -7,9 +8,8 @@ import {
 import { toast } from 'sonner';
 import { PremiumSummary } from './types';
 import { DiagnosisData, ProfileResult } from '@/domain/types';
-import { actProfiles, socraticRitual } from '@/lib/actData';
+import { actProfiles } from '@/lib/actData';
 import { telemetry } from '@/domain/telemetry';
-import { useState, useRef } from 'react';
 
 interface DocumentExportProps {
   isGeneratingSummary: boolean;
@@ -23,7 +23,7 @@ interface DocumentExportProps {
   commitment: string;
 }
 
-export function DocumentExport({
+export const DocumentExport = memo(function DocumentExport({
   isGeneratingSummary,
   premiumSummary,
   showDocument,
@@ -195,7 +195,7 @@ export function DocumentExport({
       </AnimatePresence>
     </>
   );
-}
+});
 
 interface DocumentPreviewProps {
   premiumSummary: PremiumSummary;
