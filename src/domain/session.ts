@@ -7,12 +7,14 @@ import {
   SessionSchema, 
   CURRENT_SCHEMA_VERSION,
   PrivacyMode,
-  CompletedSession as CompletedSessionType,
+  CompletedSession,
   RitualState,
   ACTMetrics,
   DiagnosisData,
   ProfileResult,
 } from './types';
+
+export type { CompletedSession };
 
 const STORAGE_KEY = 'via_serenis_session';
 const HISTORY_KEY = 'via_serenis_history';
