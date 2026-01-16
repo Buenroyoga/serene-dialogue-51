@@ -136,7 +136,7 @@ export function calculateProfile(answers: Record<number, number>): ProfileResult
 }
 
 // ═══════════════════════════════════════════════════════════
-// SOCRATIC RITUAL - 6 PHASES
+// SOCRATIC RITUAL - 6 PHASES (Full) and 3 PHASES (Short)
 // ═══════════════════════════════════════════════════════════
 
 export interface RitualPhase {
@@ -158,7 +158,8 @@ export interface RitualContext {
   previousAnswers: string[];
 }
 
-export const socraticRitual: RitualPhase[] = [
+// Full 6-phase ritual
+export const socraticRitualFull: RitualPhase[] = [
   {
     id: 'certeza',
     name: 'Verificación de Certeza',
@@ -266,3 +267,64 @@ export const socraticRitual: RitualPhase[] = [
     }
   }
 ];
+
+// Short 3-phase ritual (Exploration → Values → Action)
+export const socraticRitualShort: RitualPhase[] = [
+  {
+    id: 'exploracion',
+    name: 'Exploración',
+    emoji: '🔍',
+    instruction: 'Observa la creencia y su impacto',
+    getQuestion: (ctx) => {
+      const emotionsStr = ctx.emotions.slice(0, 3).join(', ') || 'emociones intensas';
+      const trigger = ctx.triggers[0] || 'momentos difíciles';
+      switch (ctx.profile) {
+        case 'A':
+          return `Cuando aparece "${ctx.coreBelief}" en momentos como ${trigger}, ¿qué pensamientos automáticos la acompañan? ¿Qué te dice tu mente que "deberías" hacer o sentir?`;
+        case 'B':
+          return `Cuando sientes "${ctx.coreBelief}" con esa intensidad de ${ctx.intensity}/10, ¿qué emociones aparecen? Observa ${emotionsStr}... ¿cuál de ellas pide más atención ahora?`;
+        case 'C':
+          return `¿Dónde sientes "${ctx.coreBelief}" en tu cuerpo ahora mismo? Escanea desde la cabeza hasta los pies. ¿Hay tensión, presión, calor o frío?`;
+        case 'D':
+          return `"${ctx.coreBelief}"... ¿De dónde viene esta historia? ${ctx.origin ? 'Mencionaste ' + ctx.origin + '. ' : ''}¿Cuándo la escuchaste por primera vez?`;
+      }
+    }
+  },
+  {
+    id: 'valores',
+    name: 'Valores',
+    emoji: '❤️',
+    instruction: 'Conecta con lo que realmente importa',
+    getQuestion: (ctx) => {
+      switch (ctx.profile) {
+        case 'A':
+          return `Más allá de "${ctx.coreBelief}", ¿qué es lo que realmente te importa? ¿Qué valor profundo está siendo tocado cuando esta creencia aparece?`;
+        case 'B':
+          return `Si pudieras responder a "${ctx.coreBelief}" desde tu corazón más sabio y compasivo, ¿qué te dirías a ti mismo/a? ¿Qué valor quiere emerger?`;
+        case 'C':
+          return `¿Qué necesita tu cuerpo para sentirse más en paz con "${ctx.coreBelief}"? ¿Hay algún valor —como la autocompasión o la aceptación— que te ayudaría?`;
+        case 'D':
+          return `Si "${ctx.coreBelief}" fuera solo un capítulo viejo de tu historia, ¿qué nuevo capítulo querrías escribir? ¿Qué valores guiarían esa nueva narrativa?`;
+      }
+    }
+  },
+  {
+    id: 'accion',
+    name: 'Acción',
+    emoji: '🎯',
+    instruction: 'Un paso pequeño y concreto',
+    getQuestion: (ctx) => {
+      return `A pesar de que "${ctx.coreBelief}" pueda seguir apareciendo, ¿cuál es UN paso pequeño y concreto que podrías dar en las próximas 24-48 horas, alineado con lo que realmente te importa? No tiene que ser grande, solo significativo para ti.`;
+    }
+  }
+];
+
+// Legacy export for backwards compatibility
+export const socraticRitual = socraticRitualFull;
+
+// Get ritual phases based on mode
+export type RitualMode = 'short' | 'full';
+
+export function getRitualPhases(mode: RitualMode): RitualPhase[] {
+  return mode === 'short' ? socraticRitualShort : socraticRitualFull;
+}
