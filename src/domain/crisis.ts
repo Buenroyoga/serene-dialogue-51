@@ -85,12 +85,12 @@ export const CRISIS_RESOURCES = {
   spain: {
     name: 'Teléfono de la Esperanza',
     phone: '717 003 717',
-    description: 'Línea de atención a la conducta suicida (24h)',
+    description: 'Atención emocional y prevención del suicidio (24h)',
   },
   spain_general: {
-    name: 'Teléfono de la Esperanza General',
+    name: 'Línea de Atención a la Conducta Suicida',
     phone: '024',
-    description: 'Línea corta de atención en crisis',
+    description: 'Línea oficial de atención al suicidio en España (24h, gratuita)',
   },
   international: {
     name: 'International Association for Suicide Prevention',
