@@ -14,7 +14,183 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      goals: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          current_count: number
+          description: string | null
+          ends_at: string
+          goal_type: string
+          id: string
+          is_completed: boolean
+          starts_at: string
+          target_count: number
+          title: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          current_count?: number
+          description?: string | null
+          ends_at: string
+          goal_type: string
+          id?: string
+          is_completed?: boolean
+          starts_at?: string
+          target_count?: number
+          title: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          current_count?: number
+          description?: string | null
+          ends_at?: string
+          goal_type?: string
+          id?: string
+          is_completed?: boolean
+          starts_at?: string
+          target_count?: number
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      journal_entries: {
+        Row: {
+          created_at: string
+          emotions: string[]
+          energy_level: number | null
+          id: string
+          mood_score: number
+          notes: string | null
+          sleep_quality: number | null
+          triggers: string[]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emotions?: string[]
+          energy_level?: number | null
+          id?: string
+          mood_score: number
+          notes?: string | null
+          sleep_quality?: number | null
+          triggers?: string[]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emotions?: string[]
+          energy_level?: number | null
+          id?: string
+          mood_score?: number
+          notes?: string | null
+          sleep_quality?: number | null
+          triggers?: string[]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sessions: {
+        Row: {
+          act_profile: Json | null
+          completed_at: string | null
+          created_at: string
+          diagnosis: Json | null
+          dialogue: Json | null
+          final_intensity: number | null
+          id: string
+          initial_intensity: number | null
+          user_id: string
+        }
+        Insert: {
+          act_profile?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          diagnosis?: Json | null
+          dialogue?: Json | null
+          final_intensity?: number | null
+          id?: string
+          initial_intensity?: number | null
+          user_id: string
+        }
+        Update: {
+          act_profile?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          diagnosis?: Json | null
+          dialogue?: Json | null
+          final_intensity?: number | null
+          id?: string
+          initial_intensity?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      streaks: {
+        Row: {
+          created_at: string
+          current_count: number
+          id: string
+          last_activity_date: string | null
+          longest_count: number
+          streak_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_count?: number
+          id?: string
+          last_activity_date?: string | null
+          longest_count?: number
+          streak_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_count?: number
+          id?: string
+          last_activity_date?: string | null
+          longest_count?: number
+          streak_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
