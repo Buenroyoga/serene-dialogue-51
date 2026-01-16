@@ -4,6 +4,18 @@
 
 import { z } from 'zod';
 
+// Re-exportar tipos de actData para uso centralizado
+export type { 
+  ProfileCategory,
+  ProfileScores,
+  ProfileResult,
+  MixedProfile,
+  ACTProfile,
+  RitualPhase,
+  RitualContext,
+  RitualMode,
+} from '@/lib/actData';
+
 // ═══ FLOW STAGES ═══
 export const FlowStage = {
   IDLE: 'IDLE',
@@ -15,17 +27,7 @@ export const FlowStage = {
 
 export type FlowStage = typeof FlowStage[keyof typeof FlowStage];
 
-// ═══ PROFILE CATEGORIES ═══
-export const ProfileCategory = {
-  A: 'A',
-  B: 'B',
-  C: 'C',
-  D: 'D',
-} as const;
-
-export type ProfileCategory = typeof ProfileCategory[keyof typeof ProfileCategory];
-
-// ═══ ZOD SCHEMAS ═══
+// ═══ ZOD SCHEMAS (para validación en runtime) ═══
 
 export const ProfileScoresSchema = z.object({
   A: z.number().min(0).max(30),
@@ -34,15 +36,11 @@ export const ProfileScoresSchema = z.object({
   D: z.number().min(0).max(30),
 });
 
-export type ProfileScores = z.infer<typeof ProfileScoresSchema>;
-
 export const MixedProfileSchema = z.object({
   name: z.string(),
   description: z.string(),
   emoji: z.string(),
 });
-
-export type MixedProfile = z.infer<typeof MixedProfileSchema>;
 
 export const ProfileResultSchema = z.object({
   profile: z.enum(['A', 'B', 'C', 'D']),
@@ -51,7 +49,7 @@ export const ProfileResultSchema = z.object({
   mixedProfile: MixedProfileSchema.optional(),
 });
 
-export type ProfileResult = z.infer<typeof ProfileResultSchema>;
+// Nota: ProfileResult tipo viene de actData.ts via re-export
 
 export const DiagnosisDataSchema = z.object({
   coreBelief: z.string().min(5, 'La creencia debe tener al menos 5 caracteres'),
