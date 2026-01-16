@@ -4,115 +4,206 @@ import { ACTProfileTest } from '@/components/ACTProfileTest';
 import { DiagnosisForm } from '@/components/DiagnosisForm';
 import { SocraticDialogue } from '@/components/SocraticDialogue';
 import { RitualComplete } from '@/components/RitualComplete';
-import { useSession } from '@/hooks/useSession';
+import { DisclaimerOverlay } from '@/components/DisclaimerOverlay';
+import { SessionHistory } from '@/components/SessionHistory';
+import { PrivacyControls } from '@/components/PrivacyControls';
+import { useFlowController } from '@/hooks/useFlowController';
 import { ProfileResult } from '@/lib/actData';
-import { DiagnosisData } from '@/hooks/useSession';
-import { toast } from 'sonner';
-
-type View = 'home' | 'profile' | 'diagnosis' | 'dialogue' | 'complete' | 'history';
+import { DiagnosisData as DomainDiagnosisData } from '@/domain/types';
+import { Session as LegacySession, DiagnosisData, DialogueEntry } from '@/hooks/useSession';
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<View>('home');
+  const [historyExpanded, setHistoryExpanded] = useState(false);
+  const {
+    session,
+    currentStage,
+    history,
+    showDisclaimer,
+    hasProgress,
+    goToStage,
+    setActProfile,
+    setDiagnosis,
+    addDialogueEntry,
+    startRitual,
+    pauseCurrentRitual,
+    completeRitual,
+    resetSession,
+    startNewRitual,
+    setPrivacyMode,
+    searchInHistory,
+    deleteHistoryEntry,
+    dismissDisclaimer,
+  } = useFlowController();
+
   const [finalIntensity, setFinalIntensity] = useState<number>(0);
-  const { session, setActProfile, setDiagnosis, addDialogueEntry, resetSession } = useSession();
+
+  // Convert domain session to legacy session format for Home component
+  const toLegacySession = (): LegacySession => ({
+    id: session.id,
+    actProfile: session.actProfile as ProfileResult | null,
+    diagnosis: session.diagnosis ? {
+      coreBelief: session.diagnosis.coreBelief || '',
+      emotionalHistory: session.diagnosis.emotionalHistory || [],
+      triggers: session.diagnosis.triggers || [],
+      narrative: session.diagnosis.narrative || '',
+      origin: session.diagnosis.origin || '',
+      intensity: session.diagnosis.intensity || 5,
+      subcategory: session.diagnosis.subcategory || '',
+    } : null,
+    dialogue: session.dialogue.map(entry => ({
+      phaseId: entry.phaseId || '',
+      phaseName: entry.phaseName || '',
+      question: entry.question || '',
+      answer: entry.answer || '',
+      timestamp: entry.timestamp || new Date(),
+    })),
+    createdAt: session.createdAt,
+    completedAt: session.completedAt,
+  });
+
+  // Convert domain diagnosis to legacy format
+  const toLegacyDiagnosis = (): DiagnosisData | null => {
+    if (!session.diagnosis) return null;
+    return {
+      coreBelief: session.diagnosis.coreBelief || '',
+      emotionalHistory: session.diagnosis.emotionalHistory || [],
+      triggers: session.diagnosis.triggers || [],
+      narrative: session.diagnosis.narrative || '',
+      origin: session.diagnosis.origin || '',
+      intensity: session.diagnosis.intensity || 5,
+      subcategory: session.diagnosis.subcategory || '',
+    };
+  };
+
+  // Convert domain dialogue entries to legacy format
+  const toLegacyDialogue = (): DialogueEntry[] => {
+    return session.dialogue.map(entry => ({
+      phaseId: entry.phaseId || '',
+      phaseName: entry.phaseName || '',
+      question: entry.question || '',
+      answer: entry.answer || '',
+      timestamp: entry.timestamp || new Date(),
+    }));
+  };
 
   const handleProfileComplete = (result: ProfileResult) => {
     setActProfile(result);
-    toast.success('Perfil ACT identificado');
-    setCurrentView('home');
   };
 
-  const handleDiagnosisComplete = (diagnosis: DiagnosisData) => {
+  const handleDiagnosisComplete = (diagnosis: DomainDiagnosisData) => {
     setDiagnosis(diagnosis);
-    toast.success('Diagnóstico completado');
-    setCurrentView('home');
   };
 
   const handleDialogueComplete = (intensity: number) => {
     setFinalIntensity(intensity);
-    toast.success('Ritual completado');
-    setCurrentView('complete');
+    completeRitual(intensity);
   };
 
   const handleNewRitual = () => {
-    // Reset diagnosis to start fresh
-    setDiagnosis({
-      coreBelief: '',
-      emotionalHistory: [],
-      triggers: [],
-      narrative: '',
-      origin: '',
-      intensity: 5,
-      subcategory: ''
-    });
-    setCurrentView('diagnosis');
+    startNewRitual();
+    goToStage('DIAGNOSIS');
+  };
+
+  const handleStartDialogue = () => {
+    startRitual();
   };
 
   const renderView = () => {
-    switch (currentView) {
-      case 'profile':
+    switch (currentStage) {
+      case 'TEST':
         return (
           <ACTProfileTest 
             onComplete={handleProfileComplete}
-            onBack={() => setCurrentView('home')}
+            onBack={() => goToStage('IDLE')}
           />
         );
-      case 'diagnosis':
+      case 'DIAGNOSIS':
         if (!session.actProfile) {
-          setCurrentView('home');
+          goToStage('IDLE');
           return null;
         }
         return (
           <DiagnosisForm
-            actProfile={session.actProfile}
+            actProfile={session.actProfile as ProfileResult}
             onComplete={handleDiagnosisComplete}
-            onBack={() => setCurrentView('home')}
+            onBack={() => goToStage('IDLE')}
           />
         );
-      case 'dialogue':
+      case 'RITUAL':
         if (!session.actProfile || !session.diagnosis) {
-          setCurrentView('home');
+          goToStage('IDLE');
           return null;
         }
         return (
           <SocraticDialogue
-            actProfile={session.actProfile}
-            diagnosis={session.diagnosis}
+            actProfile={session.actProfile as ProfileResult}
+            diagnosis={toLegacyDiagnosis()!}
             onAddEntry={addDialogueEntry}
             onComplete={handleDialogueComplete}
-            onBack={() => setCurrentView('home')}
+            onBack={() => pauseCurrentRitual()}
           />
         );
-      case 'complete':
+      case 'COMPLETE':
         if (!session.actProfile || !session.diagnosis) {
-          setCurrentView('home');
+          goToStage('IDLE');
           return null;
         }
         return (
           <RitualComplete
-            actProfile={session.actProfile}
-            diagnosis={session.diagnosis}
-            dialogueEntries={session.dialogue}
+            actProfile={session.actProfile as ProfileResult}
+            diagnosis={toLegacyDiagnosis()!}
+            dialogueEntries={toLegacyDialogue()}
             finalIntensity={finalIntensity}
-            onHome={() => setCurrentView('home')}
+            onHome={() => goToStage('IDLE')}
             onNewRitual={handleNewRitual}
           />
         );
       default:
         return (
-          <Home
-            session={session}
-            onStartProfile={() => setCurrentView('profile')}
-            onStartDiagnosis={() => setCurrentView('diagnosis')}
-            onStartDialogue={() => setCurrentView('dialogue')}
-            onViewHistory={() => setCurrentView('history')}
-          />
+          <>
+            <Home
+              session={toLegacySession()}
+              onStartProfile={() => goToStage('TEST')}
+              onStartDiagnosis={() => goToStage('DIAGNOSIS')}
+              onStartDialogue={handleStartDialogue}
+              onViewHistory={() => setHistoryExpanded(true)}
+            />
+            
+            {/* Session History */}
+            {history.length > 0 && (
+              <div className="max-w-2xl mx-auto px-4 pb-8">
+                <SessionHistory
+                  history={history}
+                  onSearch={searchInHistory}
+                  onDelete={deleteHistoryEntry}
+                  isExpanded={historyExpanded}
+                  onToggleExpand={() => setHistoryExpanded(!historyExpanded)}
+                />
+              </div>
+            )}
+          </>
         );
     }
   };
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Disclaimer Overlay */}
+      <DisclaimerOverlay 
+        isVisible={showDisclaimer} 
+        onDismiss={dismissDisclaimer} 
+      />
+      
+      {/* Privacy Controls - Fixed position */}
+      <div className="fixed top-4 right-4 z-40 relative">
+        <PrivacyControls
+          currentMode={session.privacyMode}
+          hasProgress={hasProgress}
+          onModeChange={setPrivacyMode}
+          onDeleteNow={() => resetSession()}
+        />
+      </div>
+
       {renderView()}
     </div>
   );
