@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { BreathAnchor } from './BreathAnchor';
+import { SuggestedChips } from './SuggestedChips';
 import { DiagnosisData } from '@/hooks/useSession';
 import { ProfileResult, actProfiles } from '@/lib/actData';
 import { ArrowLeft, ArrowRight, Check, Plus, X } from 'lucide-react';
@@ -23,29 +24,6 @@ const steps = [
   { id: 'triggers', title: 'Disparadores', emoji: '⚡', color: 'from-amber-500/20 to-orange-500/20' },
   { id: 'origin', title: 'Origen', emoji: '🌱', color: 'from-emerald-500/20 to-teal-500/20' },
   { id: 'intensity', title: 'Intensidad', emoji: '🔥', color: 'from-red-500/20 to-rose-500/20' },
-];
-
-const emotions = [
-  { name: 'Tristeza', emoji: '😢' },
-  { name: 'Ansiedad', emoji: '😰' },
-  { name: 'Rabia', emoji: '😠' },
-  { name: 'Vergüenza', emoji: '😳' },
-  { name: 'Miedo', emoji: '😨' },
-  { name: 'Culpa', emoji: '😔' },
-  { name: 'Frustración', emoji: '😤' },
-  { name: 'Soledad', emoji: '🥺' },
-  { name: 'Desesperanza', emoji: '😞' },
-];
-
-const triggers = [
-  { name: 'Trabajo', emoji: '💼' },
-  { name: 'Relaciones', emoji: '💑' },
-  { name: 'Familia', emoji: '👨‍👩‍👧' },
-  { name: 'Soledad', emoji: '🚶' },
-  { name: 'Evaluaciones', emoji: '📋' },
-  { name: 'Conflictos', emoji: '⚔️' },
-  { name: 'Errores', emoji: '❌' },
-  { name: 'Comparación', emoji: '⚖️' },
 ];
 
 export function DiagnosisForm({ actProfile, onComplete, onBack }: DiagnosisFormProps) {
@@ -207,46 +185,12 @@ export function DiagnosisForm({ actProfile, onComplete, onBack }: DiagnosisFormP
                 Cuando "<span className="text-foreground">{formData.coreBelief}</span>" aparece:
               </p>
               
-              <div className="grid grid-cols-3 gap-3">
-                {emotions.map((emotion, index) => (
-                  <motion.button
-                    key={emotion.name}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.03 }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => toggleItem('emotionalHistory', emotion.name)}
-                    className={cn(
-                      "p-3 rounded-xl text-sm transition-all flex flex-col items-center gap-1 border",
-                      formData.emotionalHistory?.includes(emotion.name)
-                        ? 'bg-primary/20 border-primary text-primary-foreground shadow-lg'
-                        : 'bg-background/50 border-border/50 hover:border-primary/50 hover:bg-background/80'
-                    )}
-                  >
-                    <span className="text-xl">{emotion.emoji}</span>
-                    <span className="font-medium">{emotion.name}</span>
-                  </motion.button>
-                ))}
-              </div>
-
-              {/* Selected emotions */}
-              {(formData.emotionalHistory?.length || 0) > 0 && (
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="mt-4 flex flex-wrap gap-2"
-                >
-                  {formData.emotionalHistory?.map(emotion => (
-                    <span key={emotion} className="px-3 py-1 bg-primary/20 text-primary rounded-full text-sm flex items-center gap-1">
-                      {emotion}
-                      <button onClick={() => removeItem('emotionalHistory', emotion)}>
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
-                </motion.div>
-              )}
+              <SuggestedChips
+                type="emotions"
+                selected={formData.emotionalHistory || []}
+                onToggle={(item) => toggleItem('emotionalHistory', item)}
+                onRemove={(item) => removeItem('emotionalHistory', item)}
+              />
 
               {/* Custom emotion input */}
               <div className="mt-4 flex gap-2">
@@ -281,46 +225,12 @@ export function DiagnosisForm({ actProfile, onComplete, onBack }: DiagnosisFormP
                 Momentos donde "<span className="text-foreground">{formData.coreBelief}</span>" se activa:
               </p>
               
-              <div className="grid grid-cols-2 gap-3">
-                {triggers.map((trigger, index) => (
-                  <motion.button
-                    key={trigger.name}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.03 }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => toggleItem('triggers', trigger.name)}
-                    className={cn(
-                      "p-4 rounded-xl text-sm transition-all flex items-center gap-3 border",
-                      formData.triggers?.includes(trigger.name)
-                        ? 'bg-primary/20 border-primary shadow-lg'
-                        : 'bg-background/50 border-border/50 hover:border-primary/50'
-                    )}
-                  >
-                    <span className="text-xl">{trigger.emoji}</span>
-                    <span className="font-medium">{trigger.name}</span>
-                  </motion.button>
-                ))}
-              </div>
-
-              {/* Selected triggers */}
-              {(formData.triggers?.length || 0) > 0 && (
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="mt-4 flex flex-wrap gap-2"
-                >
-                  {formData.triggers?.map(trigger => (
-                    <span key={trigger} className="px-3 py-1 bg-primary/20 text-primary rounded-full text-sm flex items-center gap-1">
-                      {trigger}
-                      <button onClick={() => removeItem('triggers', trigger)}>
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
-                </motion.div>
-              )}
+              <SuggestedChips
+                type="triggers"
+                selected={formData.triggers || []}
+                onToggle={(item) => toggleItem('triggers', item)}
+                onRemove={(item) => removeItem('triggers', item)}
+              />
 
               {/* Custom trigger input */}
               <div className="mt-4 flex gap-2">

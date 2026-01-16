@@ -4,7 +4,7 @@ import { JourneyCard } from './JourneyCard';
 import { BreathAnchor } from './BreathAnchor';
 import { ExerciseLibrary } from './ExerciseLibrary';
 import { Session } from '@/hooks/useSession';
-import { ArrowDown, Sparkles, BookOpen, X } from 'lucide-react';
+import { ArrowDown, Sparkles, BookOpen, X, HelpCircle } from 'lucide-react';
 import { Button } from './ui/button';
 
 interface HomeProps {
@@ -13,6 +13,7 @@ interface HomeProps {
   onStartDiagnosis: () => void;
   onStartDialogue: () => void;
   onViewHistory: () => void;
+  onHowItWorks?: () => void;
 }
 
 const containerVariants = {
@@ -40,6 +41,7 @@ export function Home({
   onStartProfile, 
   onStartDiagnosis, 
   onStartDialogue,
+  onHowItWorks,
 }: HomeProps) {
   const [showExercises, setShowExercises] = useState(false);
   const hasProfile = session.actProfile !== null;
@@ -245,16 +247,27 @@ export function Home({
           </motion.div>
         )}
 
-        {/* Exercise Library Button */}
-        <motion.div variants={itemVariants} className="mb-8">
+        {/* Exercise Library and How It Works Buttons */}
+        <motion.div variants={itemVariants} className="mb-8 flex flex-col sm:flex-row gap-3">
           <Button
             onClick={() => setShowExercises(true)}
             variant="outline"
-            className="w-full py-6 border-primary/30 hover:border-primary/60 hover:bg-primary/5 group"
+            className="flex-1 py-6 border-primary/30 hover:border-primary/60 hover:bg-primary/5 group"
           >
             <BookOpen className="w-5 h-5 mr-3 text-primary group-hover:scale-110 transition-transform" />
-            <span className="text-gradient-subtle font-semibold">Explorar Biblioteca de Ejercicios ACT</span>
+            <span className="text-gradient-subtle font-semibold">Biblioteca de Ejercicios</span>
           </Button>
+          
+          {onHowItWorks && (
+            <Button
+              onClick={onHowItWorks}
+              variant="outline"
+              className="flex-1 py-6 border-muted-foreground/30 hover:border-primary/60 hover:bg-primary/5 group"
+            >
+              <HelpCircle className="w-5 h-5 mr-3 text-muted-foreground group-hover:text-primary group-hover:scale-110 transition-all" />
+              <span className="font-semibold text-muted-foreground group-hover:text-foreground">¿Cómo Funciona?</span>
+            </Button>
+          )}
         </motion.div>
 
         {/* Footer */}
