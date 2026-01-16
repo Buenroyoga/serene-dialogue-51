@@ -7,11 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { BreathAnchor } from './BreathAnchor';
 import { SuggestedChips } from './SuggestedChips';
-import { DiagnosisData } from '@/hooks/useSession';
-import { ProfileResult, actProfiles } from '@/lib/actData';
+import { DiagnosisData, ProfileResult } from '@/domain/types';
+import { actProfiles } from '@/lib/actData';
 import { ArrowLeft, ArrowRight, Check, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
 interface DiagnosisFormProps {
   actProfile: ProfileResult;
   onComplete: (diagnosis: DiagnosisData) => void;

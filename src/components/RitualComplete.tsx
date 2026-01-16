@@ -6,9 +6,9 @@ import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { DiagnosisData, DialogueEntry } from '@/hooks/useSession';
-import { ProfileResult, actProfiles, socraticRitual } from '@/lib/actData';
-import { 
+import { DiagnosisData, DialogueEntry, ProfileResult } from '@/domain/types';
+import { actProfiles, socraticRitual } from '@/lib/actData';
+import {
   Home, RotateCcw, BookOpen, X, ChevronRight, FileText, Download, 
   Loader2, Copy, Check, Target, Lightbulb, Shield, Zap, Heart,
   Printer, Sparkles

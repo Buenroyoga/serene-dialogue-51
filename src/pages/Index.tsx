@@ -7,13 +7,16 @@ import { RitualComplete } from '@/components/RitualComplete';
 import { DisclaimerOverlay } from '@/components/DisclaimerOverlay';
 import { SessionHistory } from '@/components/SessionHistory';
 import { PrivacyControls } from '@/components/PrivacyControls';
-import { RitualSelector, RitualMode } from '@/components/RitualSelector';
+import { RitualSelector } from '@/components/RitualSelector';
 import { HowItWorks } from '@/components/HowItWorks';
 import { useFlowController } from '@/hooks/useFlowController';
-import { ProfileResult } from '@/lib/actData';
-import { DiagnosisData as DomainDiagnosisData } from '@/domain/types';
-import { Session as LegacySession, DiagnosisData, DialogueEntry } from '@/hooks/useSession';
-
+import { 
+  ProfileResult, 
+  DiagnosisData, 
+  DialogueEntry, 
+  Session,
+  RitualMode,
+} from '@/domain/types';
 // Extended flow stages to include new screens
 type ExtendedStage = 'IDLE' | 'HOW_IT_WORKS' | 'TEST' | 'DIAGNOSIS' | 'SELECT_RITUAL' | 'RITUAL' | 'COMPLETE';
 
@@ -45,32 +48,10 @@ const Index = () => {
 
   const [finalIntensity, setFinalIntensity] = useState<number>(0);
 
-  // Convert domain session to legacy session format for Home component
-  const toLegacySession = (): LegacySession => ({
-    id: session.id,
-    actProfile: session.actProfile as ProfileResult | null,
-    diagnosis: session.diagnosis ? {
-      coreBelief: session.diagnosis.coreBelief || '',
-      emotionalHistory: session.diagnosis.emotionalHistory || [],
-      triggers: session.diagnosis.triggers || [],
-      narrative: session.diagnosis.narrative || '',
-      origin: session.diagnosis.origin || '',
-      intensity: session.diagnosis.intensity || 5,
-      subcategory: session.diagnosis.subcategory || '',
-    } : null,
-    dialogue: session.dialogue.map(entry => ({
-      phaseId: entry.phaseId || '',
-      phaseName: entry.phaseName || '',
-      question: entry.question || '',
-      answer: entry.answer || '',
-      timestamp: entry.timestamp || new Date(),
-    })),
-    createdAt: session.createdAt,
-    completedAt: session.completedAt,
-  });
+  // Helpers para extraer datos de sesión de forma segura
+  const getSessionForHome = (): Session => session;
 
-  // Convert domain diagnosis to legacy format
-  const toLegacyDiagnosis = (): DiagnosisData | null => {
+  const getDiagnosisData = (): DiagnosisData | null => {
     if (!session.diagnosis) return null;
     return {
       coreBelief: session.diagnosis.coreBelief || '',
@@ -83,14 +64,14 @@ const Index = () => {
     };
   };
 
-  // Convert domain dialogue entries to legacy format
-  const toLegacyDialogue = (): DialogueEntry[] => {
+  const getDialogueEntries = (): DialogueEntry[] => {
     return session.dialogue.map(entry => ({
       phaseId: entry.phaseId || '',
       phaseName: entry.phaseName || '',
       question: entry.question || '',
       answer: entry.answer || '',
       timestamp: entry.timestamp || new Date(),
+      isAiGenerated: entry.isAiGenerated || false,
     }));
   };
 
@@ -99,7 +80,7 @@ const Index = () => {
     setExtendedStage('IDLE');
   };
 
-  const handleDiagnosisComplete = (diagnosis: DomainDiagnosisData) => {
+  const handleDiagnosisComplete = (diagnosis: DiagnosisData) => {
     setDiagnosis(diagnosis);
     setExtendedStage('IDLE');
   };
@@ -209,7 +190,7 @@ const Index = () => {
         return (
           <SocraticDialogue
             actProfile={session.actProfile as ProfileResult}
-            diagnosis={toLegacyDiagnosis()!}
+            diagnosis={getDiagnosisData()!}
             ritualMode={selectedRitualMode}
             onAddEntry={addDialogueEntry}
             onComplete={handleDialogueComplete}
@@ -229,8 +210,8 @@ const Index = () => {
         return (
           <RitualComplete
             actProfile={session.actProfile as ProfileResult}
-            diagnosis={toLegacyDiagnosis()!}
-            dialogueEntries={toLegacyDialogue()}
+            diagnosis={getDiagnosisData()!}
+            dialogueEntries={getDialogueEntries()}
             finalIntensity={finalIntensity}
             onHome={() => {
               setExtendedStage('IDLE');
@@ -243,7 +224,7 @@ const Index = () => {
         return (
           <>
             <Home
-              session={toLegacySession()}
+              session={getSessionForHome()}
               onStartProfile={() => {
                 setExtendedStage('TEST');
                 goToStage('TEST');

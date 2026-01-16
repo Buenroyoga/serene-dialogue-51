@@ -3,10 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { JourneyCard } from './JourneyCard';
 import { BreathAnchor } from './BreathAnchor';
 import { ExerciseLibrary } from './ExerciseLibrary';
-import { Session } from '@/hooks/useSession';
+import { Session } from '@/domain/types';
 import { ArrowDown, Sparkles, BookOpen, X, HelpCircle } from 'lucide-react';
 import { Button } from './ui/button';
-
 interface HomeProps {
   session: Session;
   onStartProfile: () => void;
