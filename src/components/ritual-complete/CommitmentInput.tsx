@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Target, ChevronRight, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,7 @@ interface CommitmentInputProps {
   onCommitmentChange: (value: string) => void;
 }
 
-export function CommitmentInput({
+export const CommitmentInput = memo(function CommitmentInput({
   commitment,
   showInput,
   onShowInput,
@@ -62,4 +63,4 @@ export function CommitmentInput({
       )}
     </motion.div>
   );
-}
+});

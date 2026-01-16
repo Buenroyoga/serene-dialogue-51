@@ -2,9 +2,8 @@
 // SESSION HISTORY - Local library of completed sessions
 // ═══════════════════════════════════════════════════════════
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, forwardRef, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
   Search, 
@@ -14,8 +13,7 @@ import {
   Sparkles,
   BookOpen,
   X,
-  ChevronDown,
-  ChevronUp
+  ChevronDown
 } from 'lucide-react';
 import { CompletedSession } from '@/domain/types';
 import { actProfiles } from '@/lib/actData';
@@ -30,14 +28,15 @@ interface SessionHistoryProps {
   className?: string;
 }
 
-export function SessionHistory({
-  history,
-  onSearch,
-  onDelete,
-  isExpanded = false,
-  onToggleExpand,
-  className,
-}: SessionHistoryProps) {
+export const SessionHistory = memo(forwardRef<HTMLDivElement, SessionHistoryProps>(
+  function SessionHistory({
+    history,
+    onSearch,
+    onDelete,
+    isExpanded = false,
+    onToggleExpand,
+    className,
+  }, ref) {
   const [searchQuery, setSearchQuery] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
@@ -221,4 +220,4 @@ export function SessionHistory({
       </AnimatePresence>
     </motion.div>
   );
-}
+}));
