@@ -179,9 +179,9 @@ export async function saveSessionToCloud(
     .from('sessions')
     .insert([{
       user_id: userId,
-      act_profile: session.actProfile as Record<string, unknown>,
-      diagnosis: session.diagnosis as Record<string, unknown>,
-      dialogue: session.dialogue as Record<string, unknown>[],
+      act_profile: session.actProfile as never,
+      diagnosis: session.diagnosis as never,
+      dialogue: session.dialogue as never,
       initial_intensity: session.initialIntensity,
       final_intensity: session.finalIntensity,
       completed_at: new Date().toISOString(),
