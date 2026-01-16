@@ -190,6 +190,8 @@ export const TelemetryEvent = {
   RITUAL_PAUSED: 'ritual_paused',
   RITUAL_RESUMED: 'ritual_resumed',
   RITUAL_COMPLETED: 'ritual_completed',
+  RITUAL_SAVED_EXIT: 'ritual_saved_exit',
+  RITUAL_DISCARDED_EXIT: 'ritual_discarded_exit',
   AI_QUESTION_REQUESTED: 'ai_question_requested',
   AI_QUESTION_SUCCESS: 'ai_question_success',
   AI_FALLBACK_USED: 'ai_fallback_used',

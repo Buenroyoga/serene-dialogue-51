@@ -93,6 +93,77 @@ export function SocraticDialogue({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // ═══ AUTOSAVE LOGIC ═══
+  useEffect(() => {
+    if (!currentAnswer.trim() || currentAnswer.length < 5) return;
+    
+    const timer = setTimeout(() => {
+      setIsSaving(true);
+      // Simulate save - in real scenario this would persist to localStorage/Supabase
+      try {
+        const saveData = {
+          sessionId,
+          phaseIndex: ritualState.currentPhaseIndex,
+          currentAnswer,
+          answers: ritualState.answers,
+          timestamp: new Date().toISOString(),
+        };
+        localStorage.setItem(`ritual_autosave_${sessionId}`, JSON.stringify(saveData));
+        setLastSaved(new Date());
+      } catch (err) {
+        console.error('Autosave failed:', err);
+      } finally {
+        setIsSaving(false);
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [currentAnswer, ritualState.currentPhaseIndex, ritualState.answers, sessionId]);
+
+  // ═══ SAFE EXIT HANDLERS ═══
+  const handleSafeExitRequest = () => {
+    setShowSafeExit(true);
+  };
+
+  const handleSaveAndExit = () => {
+    // Save current progress
+    const saveData = {
+      sessionId,
+      phaseIndex: ritualState.currentPhaseIndex,
+      currentAnswer,
+      answers: ritualState.answers,
+      intensity: currentIntensityCheck,
+      timestamp: new Date().toISOString(),
+    };
+    localStorage.setItem(`ritual_progress_${sessionId}`, JSON.stringify(saveData));
+    
+    telemetry.track('ritual_saved_exit', sessionId, { 
+      phase: currentPhase.id,
+      phaseIndex: ritualState.currentPhaseIndex 
+    });
+    
+    setShowSafeExit(false);
+    onSaveAndExit?.();
+    onBack();
+  };
+
+  const handleDiscardAndExit = () => {
+    // Remove autosave data
+    localStorage.removeItem(`ritual_autosave_${sessionId}`);
+    
+    telemetry.track('ritual_discarded_exit', sessionId, { 
+      phase: currentPhase.id,
+      phaseIndex: ritualState.currentPhaseIndex 
+    });
+    
+    setShowSafeExit(false);
+    onBack();
+  };
+
+  const handleCancelExit = () => {
+    setShowSafeExit(false);
+  };
+
   const profile = actProfiles[actProfile.profile];
   const currentPhase = ritualPhases[ritualState.currentPhaseIndex];
   const isLastPhase = ritualState.currentPhaseIndex === ritualPhases.length - 1;
@@ -381,6 +452,16 @@ export function SocraticDialogue({
         onExit={handleCrisisExit}
       />
 
+      {/* Safe Exit Modal */}
+      <SafeExitModal
+        isVisible={showSafeExit}
+        onSaveAndExit={handleSaveAndExit}
+        onDiscardAndExit={handleDiscardAndExit}
+        onCancel={handleCancelExit}
+        currentPhase={ritualState.currentPhaseIndex + 1}
+        totalPhases={ritualPhases.length}
+      />
+
       <div className="relative z-10 w-full max-w-4xl mx-auto p-6 flex flex-col flex-1">
         {/* Header */}
         <motion.div 
@@ -397,28 +478,51 @@ export function SocraticDialogue({
               {ritualState.currentPhaseIndex === 0 ? 'Volver' : 'Fase anterior'}
             </button>
             
-            {/* Pause/Resume Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={ritualState.isPaused ? handleResume : handlePause}
-              className={cn(
-                "gap-2",
-                ritualState.isPaused && "border-primary text-primary"
-              )}
-            >
-              {ritualState.isPaused ? (
-                <>
-                  <Play className="w-4 h-4" />
-                  Reanudar
-                </>
-              ) : (
-                <>
-                  <Pause className="w-4 h-4" />
-                  Pausar
-                </>
-              )}
-            </Button>
+            <div className="flex items-center gap-2">
+              {/* Autosave Indicator */}
+              <AutosaveIndicator isSaving={isSaving} lastSaved={lastSaved} />
+              
+              {/* Activation Traffic Light */}
+              <ActivationTrafficLight 
+                intensity={currentIntensityCheck} 
+                intensityJump={currentIntensityCheck - ritualState.lastIntensity}
+                onSuggestPause={() => setShowSomaticBreak(true)}
+              />
+              
+              {/* Pause/Resume Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={ritualState.isPaused ? handleResume : handlePause}
+                className={cn(
+                  "gap-2",
+                  ritualState.isPaused && "border-primary text-primary"
+                )}
+              >
+                {ritualState.isPaused ? (
+                  <>
+                    <Play className="w-4 h-4" />
+                    Reanudar
+                  </>
+                ) : (
+                  <>
+                    <Pause className="w-4 h-4" />
+                    Pausar
+                  </>
+                )}
+              </Button>
+              
+              {/* Safe Exit Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSafeExitRequest}
+                className="gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Salir</span>
+              </Button>
+            </div>
           </div>
           
           <div className="text-center">
