@@ -39,6 +39,19 @@ export async function invokeFunction<T = unknown>(
 ): Promise<FunctionCallResult<T>> {
   const { timeout = DEFAULT_TIMEOUT, retries = 1 } = options;
   
+  // Check if user is authenticated before calling edge functions
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session) {
+    console.log(`[${functionName}] No active session, using static fallback`);
+    return {
+      data: { useStatic: true } as T,
+      error: null,
+      isRateLimited: false,
+      isTimeout: false,
+    };
+  }
+  
   let lastError: Error | null = null;
   let isRateLimited = false;
   let isTimeout = false;
@@ -53,6 +66,17 @@ export async function invokeFunction<T = unknown>(
       if (result.error) {
         const errorMsg = result.error.message || '';
         isRateLimited = errorMsg.includes('Rate limit') || errorMsg.includes('429');
+        
+        // Handle 401 errors - user token may have expired
+        if (errorMsg.includes('401') || errorMsg.includes('Invalid token') || errorMsg.includes('Unauthorized')) {
+          console.log(`[${functionName}] Auth error, using static fallback`);
+          return {
+            data: { useStatic: true } as T,
+            error: null,
+            isRateLimited: false,
+            isTimeout: false,
+          };
+        }
         
         if (isRateLimited) {
           return {
