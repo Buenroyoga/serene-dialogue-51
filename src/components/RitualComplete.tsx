@@ -10,7 +10,7 @@ import { actProfiles } from '@/lib/actData';
 import { Home, RotateCcw, X } from 'lucide-react';
 import { ExerciseLibrary } from './ExerciseLibrary';
 import { getExercisesForProfile } from '@/lib/actExercises';
-import { supabase } from '@/integrations/supabase/client';
+import { invokeFunction } from '@/infra/supabase';
 import { telemetry } from '@/domain/telemetry';
 import { toast } from 'sonner';
 import {
@@ -242,46 +242,51 @@ ${dialogueEntries.map(entry => `### ${entry.phaseName}\n\n**Pregunta:** ${entry.
 
     setIsGeneratingSummary(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-summary', {
-        body: {
-          coreBelief: diagnosis.coreBelief,
-          profile: actProfile.profile,
-          profileName: profile.name,
-          emotions: diagnosis.emotionalHistory,
-          triggers: diagnosis.triggers,
-          origin: diagnosis.origin,
-          initialIntensity: diagnosis.intensity,
-          finalIntensity,
-          dialogueEntries,
-          actMicro: profile.actMicro,
-          commitment,
-          mode: 'premium'
-        }
-      });
+      const result = await invokeFunction<{
+        findings?: string[];
+        underlyingValue?: string;
+        ifThenPlan?: { trigger: string; response: string }[];
+        fullDocument?: string;
+        useStatic?: boolean;
+      }>('generate-summary', {
+        coreBelief: diagnosis.coreBelief,
+        profile: actProfile.profile,
+        profileName: profile.name,
+        emotions: diagnosis.emotionalHistory,
+        triggers: diagnosis.triggers,
+        origin: diagnosis.origin,
+        initialIntensity: diagnosis.intensity,
+        finalIntensity,
+        dialogueEntries,
+        actMicro: profile.actMicro,
+        commitment,
+        mode: 'premium'
+      }, { timeout: 30000, retries: 1 });
 
-      if (error) {
-        console.error('Error generating summary:', error);
-        toast.error('Error al generar. Usando modo textual.');
+      // If no session or auth error, use textual mode
+      if (result.data?.useStatic || result.error) {
+        console.log('Using textual summary (no auth or error)');
         const summary = generateTextualSummary();
         setPremiumSummary(summary);
         setShowDocument(true);
+        telemetry.track('summary_generated', 'ritual', { mode: 'textual_fallback' });
         return;
       }
 
-      if (data) {
+      if (result.data) {
         const findings = extractFindings();
         setPremiumSummary({
-          findings: data.findings || findings,
-          underlyingValue: data.underlyingValue || detectUnderlyingValue(),
-          ifThenPlan: data.ifThenPlan || diagnosis.triggers.slice(0, 3).map(t => ({
+          findings: result.data.findings || findings,
+          underlyingValue: result.data.underlyingValue || detectUnderlyingValue(),
+          ifThenPlan: result.data.ifThenPlan || diagnosis.triggers.slice(0, 3).map(t => ({
             trigger: `Cuando ${t.toLowerCase()}`,
             response: profile.actMicro
           })),
           exercises: recommendedExercises,
           commitment,
-          fullDocument: data.fullDocument || generatePrintableDocument(
-            data.findings || [], 
-            data.ifThenPlan || [], 
+          fullDocument: result.data.fullDocument || generatePrintableDocument(
+            result.data.findings || [], 
+            result.data.ifThenPlan || [], 
             commitment
           )
         });

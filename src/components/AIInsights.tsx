@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
+import { invokeFunction } from '@/infra/supabase';
 import { toast } from 'sonner';
 import { 
   Brain, TrendingUp, TrendingDown, Minus, Target, AlertTriangle,
@@ -76,18 +76,24 @@ export function AIInsights({ journalEntries, sessions, streaks, onClose, onCreat
     setError(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke('analyze-patterns', {
-        body: {
-          journalEntries,
-          sessions: sessions?.slice(0, 10),
-          streaks
-        }
-      });
+      const result = await invokeFunction<{ analysis?: PatternAnalysis; useStatic?: boolean; error?: string }>('analyze-patterns', {
+        journalEntries,
+        sessions: sessions?.slice(0, 10),
+        streaks
+      }, { timeout: 30000, retries: 1 });
 
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (result.data?.useStatic) {
+        setError('Inicia sesión para ver análisis de IA personalizados');
+        toast.info('Inicia sesión para análisis con IA');
+        return;
+      }
 
-      setAnalysis(data.analysis);
+      if (result.error) throw result.error;
+      if (result.data?.error) throw new Error(result.data.error);
+
+      if (result.data?.analysis) {
+        setAnalysis(result.data.analysis);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error analizando patrones';
       setError(message);
